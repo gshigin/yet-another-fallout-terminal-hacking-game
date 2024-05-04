@@ -61,6 +61,8 @@ namespace yafth
         template <typename T>
         constexpr T next_t() noexcept { return static_cast<T>(next()); }
 
+        constexpr std::uint64_t operator()() noexcept { return next(); }
+
         constexpr xoroshiro128 fork() { return xoroshiro128{next(), next()}; }
     };
 } // namespace yafth

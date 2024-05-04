@@ -5,7 +5,6 @@
 #include <vector>
 #include <array>
 #include <string>
-#include <algorithm>
 
 namespace yafth
 {
@@ -22,17 +21,7 @@ namespace yafth
     class yafth_engine_t
     {
     public:
-        yafth_engine_t(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_) 
-            : rng(0, seed(seed_))
-            , lockLevelSetting(lockLevelSetting_)
-            , playerScienceSkill(playerScienceSkill_)
-            , wordLength(set_word_length())
-            , wordCount(set_word_count())
-            , answer(rng.next() % wordCount)
-        {
-            generate_chars_stream();
-            generate_words();
-        }
+        yafth_engine_t(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_);
 
         uint32_t get_word_count() const {return wordCount;}
         uint32_t get_word_length() const {return wordLength;}
@@ -47,6 +36,7 @@ namespace yafth
         uint32_t set_word_length();
         void generate_chars_stream();
         void generate_words();
+        void place_words();
 
         xoroshiro128 rng;
 

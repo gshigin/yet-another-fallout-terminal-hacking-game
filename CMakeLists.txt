@@ -7,9 +7,13 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(yafth
-  VERSION 0.0.1
+  VERSION 0.0.2
   LANGUAGES CXX
 )
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 include_directories(include)
 add_executable(yafth 

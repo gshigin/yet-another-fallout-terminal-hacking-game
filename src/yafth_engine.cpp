@@ -1,8 +1,25 @@
 #include "random_generator.hpp"
 #include "yafth_engine.hpp"
 
+#include <algorithm>
+#include <numeric>
+
 namespace yafth
 {
+
+    yafth_engine_t::yafth_engine_t(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_) 
+        : rng(0, seed(seed_))
+        , lockLevelSetting(lockLevelSetting_)
+        , playerScienceSkill(playerScienceSkill_)
+        , wordLength(set_word_length())
+        , wordCount(set_word_count())
+        , answer(rng.next() % wordCount)
+    {
+        generate_chars_stream();
+        generate_words();
+        place_words();
+    }
+
     uint32_t yafth_engine_t::set_word_length()
     {
         return std::min<uint32_t>(12, 4 + 2 * static_cast<uint32_t>(lockLevelSetting) + (rng.next() & 1));
@@ -38,10 +55,10 @@ namespace yafth
 
     void yafth_engine_t::generate_chars_stream()
     {
-        const std::array<char, 16> placeholders = 
-            {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_', '%', '$', '|', '@'};
+        const std::array<char, 24> placeholders = 
+            {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_', '%', '$', '|', '@', '{', '}', '[', ']', '(', ')', '<', '>'};
         for (auto & c : chars_stream){
-            c = placeholders[rng.next() % 16];
+            c = placeholders[rng.next() % 24];
         }
     }
 
@@ -96,5 +113,18 @@ namespace yafth
                 ++i;
             }
         } while (i < wordCount);
+    }
+
+    void yafth_engine_t::place_words()
+    {
+        words_pointers.resize(wordCount);
+        const uint32_t spacePerWord = chars_stream.size() / wordCount;
+        const uint32_t possibleStart = spacePerWord - wordLength;
+        for(uint32_t id = 0; id < wordCount; ++id)
+        {
+            auto iter = chars_stream.begin() + id * spacePerWord + rng.next() % possibleStart;
+            words_pointers[id] = iter;
+            std::copy(words[id].begin(), words[id].end(), iter);
+        }
     }
 }
