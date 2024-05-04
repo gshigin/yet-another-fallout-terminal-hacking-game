@@ -1,2 +1,2 @@
-# YAFTH - Yet Another Fallout Ternimal Hacking ( Game? )
+# YAFTH - Yet Another Fallout Terminal Hacking ( Game? )
 TBA
