@@ -28,7 +28,7 @@ namespace yafth
     uint32_t yafth_engine_t::set_word_count()
     {
         // move this to input parser
-        if(!(0 <= playerScienceSkill && playerScienceSkill <= 100))
+        if(!(playerScienceSkill && playerScienceSkill <= 100))
         {
             throw std::runtime_error("Wrong player Science skill level!");
         }

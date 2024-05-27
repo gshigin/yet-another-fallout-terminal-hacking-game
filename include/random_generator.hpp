@@ -11,7 +11,7 @@ namespace yafth
         uint64_t shifted = seed_;
 
         // one splitmix64 iteration
-        shifted = (shifted += 0x9e3779b97f4a7c15);
+        shifted += 0x9e3779b97f4a7c15;
         shifted = (shifted ^ (shifted >> 30)) * 0xbf58476d1ce4e5b9;
         shifted = (shifted ^ (shifted >> 27)) * 0x94d049bb133111eb;
         return shifted ^ (shifted >> 31);
