@@ -18,7 +18,7 @@ endif()
 include_directories(include)
 add_executable(yafth 
   src/main.cpp 
-  src/yafth_engine.cpp
+  src/engine.cpp
 )
 
 if(MSVC)

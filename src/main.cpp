@@ -1,5 +1,5 @@
-#include "random_generator.hpp"
-#include "yafth_engine.hpp"
+#include "random.hpp"
+#include "engine.hpp"
 
 #include <array>
 #include <numeric>
@@ -7,11 +7,9 @@
 
 #include <iostream>
 
-using namespace yafth;
-
 int main()
 {
-    yafth_engine_t yet(LockLevel::Easy, 65, time(0));
+    yafth::engine yet(yafth::LockLevel::Easy, 65, time(0));
  
     std::cout << sizeof(yet) << '\n';
 

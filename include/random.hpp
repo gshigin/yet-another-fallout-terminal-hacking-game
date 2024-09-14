@@ -1,9 +1,8 @@
-#ifndef YAFTH_RANDOM_GENERATOR_H
-#define YAFTH_RANDOM_GENERATOR_H
+#pragma once
 
 #include <cstdint>
 
-namespace yafth
+namespace yafth::random
 {
 
     constexpr uint64_t seed(const uint64_t seed_)
@@ -66,5 +65,3 @@ namespace yafth
         constexpr xoroshiro128 fork() { return xoroshiro128{next(), next()}; }
     };
 } // namespace yafth
-
-#endif // YAFTH_RANDOM_GENERATOR_H

@@ -1,5 +1,4 @@
-#ifndef YAFTH_ENGINE_H
-#define YAFTH_ENGINE_H
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -9,7 +8,7 @@
 namespace yafth
 {
     // from https://geckwiki.com/index.php?title=Hacking_Word_Count
-    enum class LockLevel
+    enum class LockLevel : uint32_t
     {
         VeryEasy = 0,
         Easy = 1,
@@ -18,10 +17,10 @@ namespace yafth
         VeryHard = 4
     };
 
-    class yafth_engine_t
+    class engine
     {
     public:
-        yafth_engine_t(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_);
+        engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_);
 
         uint32_t get_word_count() const {return wordCount;}
         uint32_t get_word_length() const {return wordLength;}
@@ -32,13 +31,13 @@ namespace yafth
 
         const std::string & get_log() const {return log;}
     private:
-        uint32_t set_word_count();
-        uint32_t set_word_length();
-        void generate_chars_stream();
-        void generate_words();
-        void place_words();
+        uint32_t set_word_count() noexcept;
+        uint32_t set_word_length() noexcept;
+        void generate_chars_stream() noexcept;
+        void generate_words() noexcept;
+        void place_words() noexcept;
 
-        xoroshiro128 rng;
+        random::xoroshiro128 rng;
 
         const LockLevel lockLevelSetting;
         const uint32_t playerScienceSkill;
@@ -54,5 +53,3 @@ namespace yafth
         std::vector<decltype(chars_stream.begin())> words_pointers; // pointers to words in chars_stream
     };
 } // namespace yafth
-
-#endif // YAFTH_ENGINE_H
