@@ -3,10 +3,25 @@
 
 #include <algorithm>
 #include <numeric>
+#include <utility>
+#include <map>
+
+#include <iostream>
+
+namespace
+{
+    // I wanted constexpr brackets lookup
+    static constexpr std::array<std::pair<char, char>, 4> brackets{
+    {{'{', '}'},
+     {'(', ')'},
+     {'<', '>'},
+     {'[', ']'}}};
+
+    constexpr auto lookup = []( const char c ){ return std::find_if(begin(brackets), end(brackets), [&c](const auto &v) { return v.first == c; })->second;};
+}
 
 namespace yafth
 {
-
     engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_ = 0) 
         : rng(0, random::seed(seed_))
         , lockLevelSetting(lockLevelSetting_)
@@ -55,7 +70,7 @@ namespace yafth
 
     void engine::generate_chars_stream() noexcept
     {
-        const std::array<char, 24> placeholders = 
+        constexpr std::array<char, 24> placeholders = 
             {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_', '%', '$', '|', '@', '{', '}', '[', ']', '(', ')', '<', '>'};
         for (auto & c : chars_stream){
             c = placeholders[rng.next() % 24];
@@ -127,4 +142,56 @@ namespace yafth
             std::copy(words[id].begin(), words[id].end(), iter);
         }
     }
+
+    void engine::print_formatted() const
+    {
+        constexpr uint32_t columns = 2;
+        constexpr uint32_t rows = 17;
+        constexpr uint32_t row_length = 12;
+
+        for(uint32_t i = 0; i < columns * rows; ++ i)
+        {
+            const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
+            for(auto j = start; j < start + row_length; ++j) std::cout << chars_stream[j];
+            std::cout << ( (i % 2) ? '\n' : ' ' );
+        }
+    }
+
+    std::pair<engine::const_chars_iter, engine::const_chars_iter> engine::look_at(std::size_t i) const
+    {
+        if ( chars_stream[i] >= 'A' && chars_stream[i] <= 'Z') // case of word
+        {
+            auto l = chars_stream.begin() + i;
+            auto r = l;
+            while(l != chars_stream.begin() && ( *l >= 'A' && *l <= 'Z' )) --l; 
+            if ( !( *l >= 'A' && *l <= 'Z' ) ) ++l;
+            while (r != chars_stream.end() && ( *r >= 'A' && *r <= 'Z' ) ) ++r;
+            return std::make_pair(l, r);
+        }
+        else if ( chars_stream[i] == '(' || chars_stream[i] == '[' || chars_stream[i] == '<' || chars_stream[i] == '{') // case of brackets
+        {
+            const std::size_t j =  ( (i / 12) + 1 ) * 12;
+            const char c = ::lookup(chars_stream[i]);
+            auto e = std::find(chars_stream.begin() + i,chars_stream.begin() + j, c );
+            if(e != chars_stream.begin() + j)
+            {
+                return std::make_pair(chars_stream.begin() + i, e + 1);
+            }
+        }
+        //case of one symbol
+        return std::make_pair(chars_stream.begin() + i, chars_stream.begin() + i + 1);
+    }
+
+    // void engine::click_at(std::size_t i)
+    // {
+    //     auto [b, e] = look_at(i);
+    //     if(b == e + 1)
+    //     { // nothing interesing
+
+    //     } 
+    //     else // brackets or word
+    //     {
+
+    //     }
+    // }
 }

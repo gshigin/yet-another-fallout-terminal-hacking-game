@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <utility>
 
 namespace yafth
 {
@@ -19,6 +20,9 @@ namespace yafth
 
     class engine
     {
+    private:
+        using chars_iter = std::array<char, 408>::iterator;
+        using const_chars_iter = std::array<char, 408>::const_iterator;
     public:
         engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_);
 
@@ -30,6 +34,11 @@ namespace yafth
         const std::array<char, 408> & get_chars_stream() const {return chars_stream;}
 
         const std::string & get_log() const {return log;}
+
+        void print_formatted() const; // debug use only!
+
+        std::pair<const_chars_iter, const_chars_iter> look_at(std::size_t i) const;
+        //void click_at(std::size_t i);
     private:
         uint32_t set_word_count() noexcept;
         uint32_t set_word_length() noexcept;
@@ -50,6 +59,6 @@ namespace yafth
 
         std::vector<std::string> words;
         std::array<char, 408> chars_stream;
-        std::vector<decltype(chars_stream.begin())> words_pointers; // pointers to words in chars_stream
+        std::vector<chars_iter> words_pointers; // pointers to words in chars_stream
     };
 } // namespace yafth
