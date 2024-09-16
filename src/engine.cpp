@@ -1,14 +1,29 @@
-#include "random_generator.hpp"
-#include "yafth_engine.hpp"
+#include "random.hpp"
+#include "engine.hpp"
 
 #include <algorithm>
 #include <numeric>
+#include <utility>
+#include <map>
+
+#include <iostream>
+
+namespace
+{
+    // I wanted constexpr brackets lookup
+    static constexpr std::array<std::pair<char, char>, 4> brackets{
+    {{'{', '}'},
+     {'(', ')'},
+     {'<', '>'},
+     {'[', ']'}}};
+
+    constexpr auto lookup = []( const char c ){ return std::find_if(begin(brackets), end(brackets), [&c](const auto &v) { return v.first == c; })->second;};
+}
 
 namespace yafth
 {
-
-    yafth_engine_t::yafth_engine_t(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_) 
-        : rng(0, seed(seed_))
+    engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_ = 0) 
+        : rng(0, random::seed(seed_))
         , lockLevelSetting(lockLevelSetting_)
         , playerScienceSkill(playerScienceSkill_)
         , wordLength(set_word_length())
@@ -20,25 +35,25 @@ namespace yafth
         place_words();
     }
 
-    uint32_t yafth_engine_t::set_word_length()
+    inline uint32_t engine::set_word_length() noexcept
     {
         return std::min<uint32_t>(12, 4 + 2 * static_cast<uint32_t>(lockLevelSetting) + (rng.next() & 1));
     }
 
-    uint32_t yafth_engine_t::set_word_count()
+    uint32_t engine::set_word_count() noexcept
     {
         // move this to input parser
-        if(!(playerScienceSkill && playerScienceSkill <= 100))
-        {
-            throw std::runtime_error("Wrong player Science skill level!");
-        }
-        if(! (playerScienceSkill >= static_cast<uint32_t>(lockLevelSetting) * 25))
-        {
-            throw std::runtime_error("Player is not skilled enough to hack this terminal!");
-        }
+        // if(!(playerScienceSkill <= 100))
+        // {
+        //     throw std::runtime_error("Wrong player Science skill level!");
+        // }
+        // if(! (playerScienceSkill >= static_cast<uint32_t>(lockLevelSetting) * 25))
+        // {
+        //     throw std::runtime_error("Player is not skilled enough to hack this terminal!");
+        // }
 
-        const int32_t iHackingMinWords = 5;
-        const int32_t iHackingMaxWords = 20;
+        constexpr int32_t iHackingMinWords = 5;
+        constexpr int32_t iHackingMaxWords = 20;
         const int32_t lockLevel = (static_cast<uint32_t>(lockLevelSetting) * 0.25) * 100;
         const int32_t scienceOffset = playerScienceSkill - lockLevel;
         const int32_t lockOffset = 100 - lockLevel;
@@ -53,16 +68,16 @@ namespace yafth
         return std::min(20, wordCount);
     }
 
-    void yafth_engine_t::generate_chars_stream()
+    void engine::generate_chars_stream() noexcept
     {
-        const std::array<char, 24> placeholders = 
+        constexpr std::array<char, 24> placeholders = 
             {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_', '%', '$', '|', '@', '{', '}', '[', ']', '(', ')', '<', '>'};
         for (auto & c : chars_stream){
             c = placeholders[rng.next() % 24];
         }
     }
 
-    void yafth_engine_t::generate_words()
+    void engine::generate_words() noexcept
     {
         words.reserve(wordCount);
 
@@ -115,7 +130,7 @@ namespace yafth
         } while (i < wordCount);
     }
 
-    void yafth_engine_t::place_words()
+    void engine::place_words() noexcept
     {
         words_pointers.resize(wordCount);
         const uint32_t spacePerWord = chars_stream.size() / wordCount;
@@ -127,4 +142,56 @@ namespace yafth
             std::copy(words[id].begin(), words[id].end(), iter);
         }
     }
+
+    void engine::print_formatted() const
+    {
+        constexpr uint32_t columns = 2;
+        constexpr uint32_t rows = 17;
+        constexpr uint32_t row_length = 12;
+
+        for(uint32_t i = 0; i < columns * rows; ++ i)
+        {
+            const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
+            for(auto j = start; j < start + row_length; ++j) std::cout << chars_stream[j];
+            std::cout << ( (i % 2) ? '\n' : ' ' );
+        }
+    }
+
+    std::pair<engine::const_chars_iter, engine::const_chars_iter> engine::look_at(std::size_t i) const
+    {
+        if ( chars_stream[i] >= 'A' && chars_stream[i] <= 'Z') // case of word
+        {
+            auto l = chars_stream.begin() + i;
+            auto r = l;
+            while(l != chars_stream.begin() && ( *l >= 'A' && *l <= 'Z' )) --l; 
+            if ( !( *l >= 'A' && *l <= 'Z' ) ) ++l;
+            while (r != chars_stream.end() && ( *r >= 'A' && *r <= 'Z' ) ) ++r;
+            return std::make_pair(l, r);
+        }
+        else if ( chars_stream[i] == '(' || chars_stream[i] == '[' || chars_stream[i] == '<' || chars_stream[i] == '{') // case of brackets
+        {
+            const std::size_t j =  ( (i / 12) + 1 ) * 12;
+            const char c = ::lookup(chars_stream[i]);
+            auto e = std::find(chars_stream.begin() + i,chars_stream.begin() + j, c );
+            if(e != chars_stream.begin() + j)
+            {
+                return std::make_pair(chars_stream.begin() + i, e + 1);
+            }
+        }
+        //case of one symbol
+        return std::make_pair(chars_stream.begin() + i, chars_stream.begin() + i + 1);
+    }
+
+    // void engine::click_at(std::size_t i)
+    // {
+    //     auto [b, e] = look_at(i);
+    //     if(b == e + 1)
+    //     { // nothing interesing
+
+    //     } 
+    //     else // brackets or word
+    //     {
+
+    //     }
+    // }
 }
