@@ -36,7 +36,7 @@ namespace yafth
 
         const std::string & get_log() const {return log;}
 
-        //void print_formatted() const; // debug use only!
+        std::string print_formatted() const; // debug use only!
 
         std::pair<const_chars_iter, const_chars_iter> look_at(std::size_t i) const;
         //void click_at(std::size_t i);

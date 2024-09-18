@@ -16,47 +16,23 @@ int main()
     std::cout << '\n';
     for(auto c : yet.get_chars_stream()) std::cout << c;
     std::cout << "\n";
-    //yet.print_formatted();
+    std::cout << yet.print_formatted() << '\n';
 
+    do
     {
-        const auto & [b, e] = yet.look_at(3);
+        int x; 
+        std::cin >> x;
+        if( x < 0 || x >= 408) return 0;
+
+        const auto & [b, e] = yet.look_at(x);
         std::cout << "You look at : ";
         for(auto it = b; it != e; ++it)
         {
             std::cout << *it;
         }
         std::cout << '\n';
-    }
 
-    {
-        const auto & [b, e] = yet.look_at(4);
-        std::cout << "You look at : ";
-        for(auto it = b; it != e; ++it)
-        {
-            std::cout << *it;
-        }
-        std::cout << '\n';
-    }
-
-    {
-        const auto & [b, e] = yet.look_at(12);
-        std::cout << "You look at : ";
-        for(auto it = b; it != e; ++it)
-        {
-            std::cout << *it;
-        }
-        std::cout << '\n';
-    }
-
-    {
-        const auto & [b, e] = yet.look_at(372);
-        std::cout << "You look at : ";
-        for(auto it = b; it != e; ++it)
-        {
-            std::cout << *it;
-        }
-        std::cout << '\n';
-    }
+    } while (true);
 
     return 0;
 }

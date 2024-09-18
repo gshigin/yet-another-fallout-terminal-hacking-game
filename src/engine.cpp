@@ -7,7 +7,7 @@
 #include <utility>
 #include <map>
 
-// #include <iostream>
+#include <sstream>
 
 namespace
 {
@@ -134,19 +134,23 @@ namespace yafth
         }
     }
 
-    // void engine::print_formatted() const
-    // {
-    //     constexpr uint32_t columns = 2;
-    //     constexpr uint32_t rows = 17;
-    //     constexpr uint32_t row_length = 12;
+    std::string engine::print_formatted() const
+    {
+        constexpr uint32_t columns = 2;
+        constexpr uint32_t rows = 17;
+        constexpr uint32_t row_length = 12;
 
-    //     for(uint32_t i = 0; i < columns * rows; ++ i)
-    //     {
-    //         const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
-    //         for(auto j = start; j < start + row_length; ++j) std::cout << chars_stream[j];
-    //         std::cout << ( (i % 2) ? '\n' : ' ' );
-    //     }
-    // }
+        std::stringstream ss;
+
+        for(uint32_t i = 0; i < columns * rows; ++ i)
+        {
+            const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
+            ss << ( i == 0 ? "  " : ( start < 100 ? " " : "" ) ) << ( start ) << ' ';
+            for(auto j = start; j < start + row_length; ++j) ss << chars_stream[j];
+            ss << ( (i % 2) ? '\n' : ' ' );
+        }
+        return ss.str();
+    }
 
     std::pair<engine::const_chars_iter, engine::const_chars_iter> engine::look_at(std::size_t i) const
     {
