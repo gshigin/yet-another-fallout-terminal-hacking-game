@@ -4,7 +4,6 @@
 
 namespace yafth::random
 {
-
     constexpr uint64_t seed(const uint64_t seed_)
     {
         uint64_t shifted = seed_;

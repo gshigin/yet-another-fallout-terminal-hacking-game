@@ -1,12 +1,13 @@
-#include "random.hpp"
-#include "engine.hpp"
-
+// yafth
+#include "yafth/random.h"
+#include "yafth/engine.h"
+// stl
 #include <algorithm>
 #include <numeric>
 #include <utility>
 #include <map>
 
-#include <iostream>
+// #include <iostream>
 
 namespace
 {
@@ -25,7 +26,7 @@ namespace yafth
     engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_ = 0) 
         : rng(0, random::seed(seed_))
         , lockLevelSetting(lockLevelSetting_)
-        , playerScienceSkill(playerScienceSkill_)
+        , playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, 0, 100))
         , wordLength(set_word_length())
         , wordCount(set_word_count())
         , answer(rng.next() % wordCount)
@@ -42,16 +43,6 @@ namespace yafth
 
     uint32_t engine::set_word_count() noexcept
     {
-        // move this to input parser
-        // if(!(playerScienceSkill <= 100))
-        // {
-        //     throw std::runtime_error("Wrong player Science skill level!");
-        // }
-        // if(! (playerScienceSkill >= static_cast<uint32_t>(lockLevelSetting) * 25))
-        // {
-        //     throw std::runtime_error("Player is not skilled enough to hack this terminal!");
-        // }
-
         constexpr int32_t iHackingMinWords = 5;
         constexpr int32_t iHackingMaxWords = 20;
         const int32_t lockLevel = (static_cast<uint32_t>(lockLevelSetting) * 0.25) * 100;
@@ -143,19 +134,19 @@ namespace yafth
         }
     }
 
-    void engine::print_formatted() const
-    {
-        constexpr uint32_t columns = 2;
-        constexpr uint32_t rows = 17;
-        constexpr uint32_t row_length = 12;
+    // void engine::print_formatted() const
+    // {
+    //     constexpr uint32_t columns = 2;
+    //     constexpr uint32_t rows = 17;
+    //     constexpr uint32_t row_length = 12;
 
-        for(uint32_t i = 0; i < columns * rows; ++ i)
-        {
-            const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
-            for(auto j = start; j < start + row_length; ++j) std::cout << chars_stream[j];
-            std::cout << ( (i % 2) ? '\n' : ' ' );
-        }
-    }
+    //     for(uint32_t i = 0; i < columns * rows; ++ i)
+    //     {
+    //         const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
+    //         for(auto j = start; j < start + row_length; ++j) std::cout << chars_stream[j];
+    //         std::cout << ( (i % 2) ? '\n' : ' ' );
+    //     }
+    // }
 
     std::pair<engine::const_chars_iter, engine::const_chars_iter> engine::look_at(std::size_t i) const
     {

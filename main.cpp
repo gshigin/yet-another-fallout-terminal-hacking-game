@@ -1,5 +1,4 @@
-#include "random.hpp"
-#include "engine.hpp"
+#include "yafth/engine.h"
 
 #include <array>
 #include <numeric>
@@ -17,7 +16,7 @@ int main()
     std::cout << '\n';
     for(auto c : yet.get_chars_stream()) std::cout << c;
     std::cout << "\n";
-    yet.print_formatted();
+    //yet.print_formatted();
 
     {
         const auto & [b, e] = yet.look_at(3);

@@ -1,10 +1,11 @@
 #pragma once
-
+//yafth
+#include "yafth/random.h"
+//stl
 #include <cstdint>
 #include <vector>
 #include <array>
 #include <string>
-#include <utility>
 
 namespace yafth
 {
@@ -35,7 +36,7 @@ namespace yafth
 
         const std::string & get_log() const {return log;}
 
-        void print_formatted() const; // debug use only!
+        //void print_formatted() const; // debug use only!
 
         std::pair<const_chars_iter, const_chars_iter> look_at(std::size_t i) const;
         //void click_at(std::size_t i);
@@ -61,4 +62,4 @@ namespace yafth
         std::array<char, 408> chars_stream;
         std::vector<chars_iter> words_pointers; // pointers to words in chars_stream
     };
-} // namespace yafth
+} //namespace yafth
