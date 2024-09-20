@@ -8,29 +8,26 @@
 
 int main()
 {
-    yafth::engine yet(yafth::LockLevel::Easy, 65, 0);
+    yafth::engine y(yafth::LockLevel::Easy, 65, 0);
+    yafth::engine yet(std::move(y));
  
     std::cout << "size : " << sizeof(yet) << " bytes\n";
     std::cout << "words : ";
-    for(const auto& word : yet.get_words()) std::cout << word << " ";
+    const auto & words = yet.get_words();
+    std::cout << words.size() << '\n';
+    for(const auto& word : words) std::cout << word << " ";
     std::cout << '\n';
-    for(auto c : yet.get_chars_stream()) std::cout << c;
+    for(auto c : yet.get_term_chars()) std::cout << c;
     std::cout << "\n";
-    std::cout << yet.print_formatted() << '\n';
+    //std::cout << yet.print_formatted() << '\n';
 
-    do
-    {
-        int x; 
-        std::cin >> x;
+    int x; 
+    while(std::cin >> x)
+    {    
         if( x < 0 || x >= 408) return 0;
 
-        const auto & [b, e] = yet.look_at(x);
-        std::cout << "You look at : ";
-        for(auto it = b; it != e; ++it)
-        {
-            std::cout << *it;
-        }
-        std::cout << '\n';
+        auto sv = yet.look_at(x);
+        std::cout << "You look at : " << sv << '\n';
 
     } while (true);
 

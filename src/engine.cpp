@@ -5,13 +5,12 @@
 #include <algorithm>
 #include <numeric>
 #include <utility>
-#include <map>
 
 #include <sstream>
 
 namespace
 {
-    // I wanted constexpr brackets lookup
+    // constexpr brackets lookup
     static constexpr std::array<std::pair<char, char>, 4> brackets{
     {{'{', '}'},
      {'(', ')'},
@@ -19,6 +18,9 @@ namespace
      {'[', ']'}}};
 
     constexpr auto lookup = []( const char c ){ return std::find_if(begin(brackets), end(brackets), [&c](const auto &v) { return v.first == c; })->second;};
+
+    constexpr auto is_char = []( const char c ){ return c >= 'A' && c <= 'Z';};
+    constexpr auto is_open_br = []( const char c ){ return c == '(' || c == '[' || c == '<' || c == '{';};
 }
 
 namespace yafth
@@ -26,52 +28,48 @@ namespace yafth
     engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_ = 0) 
         : rng(0, random::seed(seed_))
         , lockLevelSetting(lockLevelSetting_)
-        , playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, 0, 100))
+        , playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, 1, 100))
         , wordLength(set_word_length())
         , wordCount(set_word_count())
         , answer(rng.next() % wordCount)
     {
-        generate_chars_stream();
+        generate_term_chars();
         generate_words();
         place_words();
     }
 
-    inline uint32_t engine::set_word_length() noexcept
+    inline std::size_t engine::set_word_length() noexcept
     {
-        return std::min<uint32_t>(12, 4 + 2 * static_cast<uint32_t>(lockLevelSetting) + (rng.next() & 1));
+        return std::min<std::size_t>(12, 4 + 2 * static_cast<std::size_t>(lockLevelSetting) + (rng.next() & 1));
     }
 
-    uint32_t engine::set_word_count() noexcept
+    // from https://geckwiki.com/index.php?title=Hacking_Word_Count
+    std::size_t engine::set_word_count() noexcept
     {
-        constexpr int32_t iHackingMinWords = 5;
-        constexpr int32_t iHackingMaxWords = 20;
-        const int32_t lockLevel = (static_cast<uint32_t>(lockLevelSetting) * 0.25) * 100;
-        const int32_t scienceOffset = playerScienceSkill - lockLevel;
-        const int32_t lockOffset = 100 - lockLevel;
+        constexpr std::size_t iHackingMinWords = 5;
+        constexpr std::size_t iHackingMaxWords = 20;
+        const std::size_t lockLevel = (static_cast<std::size_t>(lockLevelSetting) * 0.25) * 100;
+        const std::size_t scienceOffset = playerScienceSkill - lockLevel;
+        const std::size_t lockOffset = 100 - lockLevel;
 
-        int wordCount = 0;
+        const double sol_coef = lockOffset == 0 ? 0.5 : (1 - ( (1.0 * scienceOffset) / lockOffset) ); // scienceOffset over lockOffset coef
 
-        if (lockOffset == 0)
-            wordCount = (0.5 * (iHackingMaxWords - iHackingMinWords)) + iHackingMinWords;
-        else
-            wordCount = ((1 - (1.0 * scienceOffset / lockOffset)) * (iHackingMaxWords - iHackingMinWords)) + iHackingMinWords;
+        const std::size_t wordCount = (sol_coef * (iHackingMaxWords - iHackingMinWords)) + iHackingMinWords;
         
-        return std::min(20, wordCount);
+        return std::min<std::size_t>(20, wordCount);
     }
 
-    void engine::generate_chars_stream() noexcept
+    void engine::generate_term_chars() noexcept
     {
         constexpr std::array<char, 24> placeholders = 
             {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_', '%', '$', '|', '@', '{', '}', '[', ']', '(', ')', '<', '>'};
-        for (auto & c : chars_stream){
+        for (auto & c : term_chars){
             c = placeholders[rng.next() % 24];
         }
     }
 
     void engine::generate_words() noexcept
     {
-        words.reserve(wordCount);
-
         std::array<std::string, 100> wordArr{};
         if (wordLength == 4)
         {
@@ -110,12 +108,15 @@ namespace yafth
             wordArr  = { "CONSTITUTION", "ILLUSTRATION", "CONVERSATION", "PARTICULARLY", "CONSIDERABLE", "INDEPENDENCE", "MADEMOISELLE", "SUBCUTANEOUS", "PENNSYLVANIA", "INFLAMMATION", "OCCASIONALLY", "SIGNIFICANCE", "INTERFERENCE", "TUBERCULOSIS", "LEGISLATURES", "SATISFACTION", "PHILADELPHIA", "DEGENERATION", "DISTRIBUTION", "GRANULATIONS", "UNEXPECTEDLY", "ACQUAINTANCE", "HANDKERCHIEF", "DIFFICULTIES", "INFLAMMATORY", "HEADQUARTERS", "INSTRUCTIONS", "PROCLAMATION", "CONSERVATIVE", "PREPARATIONS", "MANUFACTURES", "SURROUNDINGS", "ORGANIZATION", "RESPECTFULLY", "SATISFACTORY", "CIVILIZATION", "INTELLECTUAL", "ACCOMPLISHED", "LEUCOCYTOSIS", "NEVERTHELESS", "RATIFICATION", "REGENERATION", "OSSIFICATION", "PATHOLOGICAL", "DISPOSITIONS", "DISSATISFIED", "INSTITUTIONS", "COMBINATIONS", "NEGOTIATIONS", "PRESIDENTIAL", "SUFFICIENTLY", "CONCENTRATED", "INTRODUCTION", "ARRANGEMENTS", "CONSEQUENTLY", "ASTONISHMENT", "PROFESSIONAL", "IMPROVEMENTS", "CORPORATIONS", "DISPLACEMENT", "INDIFFERENCE", "SUBSEQUENTLY", "ACCUMULATION", "CONSTRUCTION", "INTERVENTION", "SUCCESSFULLY", "FIBROMATOSIS", "INFILTRATION", "VERESHCHAGIN", "AFFECTIONATE", "APPLICATIONS", "DELIBERATELY", "EMANCIPATION", "LYMPHANGITIS", "PASSIONATELY", "RECOLLECTION", "REPRESENTING", "RESTRICTIONS", "AGRICULTURAL", "ESTABLISHING", "IRRESISTIBLE", "ANNOUNCEMENT", "CONGRATULATE", "DEMONSTRATED", "DIFFERENTIAL", "HENDRIKHOVNA", "REQUIREMENTS", "ACCIDENTALLY", "MILORADOVICH", "COMMENCEMENT", "COMPENSATION", "DISTRIBUTING", "STRENGTHENED", "TRANQUILLITY", "ACCOMPANYING", "ADMINISTERED", "ADVANTAGEOUS", "COLONIZATION", "CONSEQUENCES", "CONSIDERABLY" };
         }
         uint32_t i = 0;
+        auto it = words_chars.begin();
         do
         {
             auto nextWord = wordArr[rng.next() % 100];
             if(std::find(words.begin(), words.end(), nextWord) == words.end())
             {
-                words.push_back(nextWord);
+                std::copy(nextWord.begin(), nextWord.end(), it);
+                words[i] = std::string_view{it, it + wordLength};
+                it += wordLength;
                 ++i;
             }
         } while (i < wordCount);
@@ -123,58 +124,70 @@ namespace yafth
 
     void engine::place_words() noexcept
     {
-        words_pointers.resize(wordCount);
-        const uint32_t spacePerWord = chars_stream.size() / wordCount;
+        const uint32_t spacePerWord = term_chars.size() / wordCount;
         const uint32_t possibleStart = spacePerWord - wordLength;
         for(uint32_t id = 0; id < wordCount; ++id)
         {
-            auto iter = chars_stream.begin() + id * spacePerWord + rng.next() % possibleStart;
-            words_pointers[id] = iter;
+            auto iter = term_chars.begin() + id * spacePerWord + rng.next() % possibleStart;
             std::copy(words[id].begin(), words[id].end(), iter);
         }
     }
 
-    std::string engine::print_formatted() const
+    // std::string engine::print_formatted() const
+    // {
+    //     constexpr uint32_t columns = 2;
+    //     constexpr uint32_t rows = 17;
+    //     constexpr uint32_t row_length = 12;
+
+    //     std::stringstream ss;
+
+    //     for(uint32_t i = 0; i < columns * rows; ++ i)
+    //     {
+    //         const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
+    //         ss << ( i == 0 ? "  " : ( start < 100 ? " " : "" ) ) << ( start ) << ' ';
+    //         for(auto j = start; j < start + row_length; ++j) ss << term_chars[j];
+    //         ss << ( (i % 2) ? '\n' : ' ' );
+    //     }
+    //     return ss.str();
+    // }
+
+    std::string_view engine::look_at(std::size_t i) const
     {
-        constexpr uint32_t columns = 2;
-        constexpr uint32_t rows = 17;
-        constexpr uint32_t row_length = 12;
-
-        std::stringstream ss;
-
-        for(uint32_t i = 0; i < columns * rows; ++ i)
+        i = std::clamp<std::size_t>(i, 0, term_chars.size());
+        if ( ::is_char(term_chars[i]) ) // case of word
         {
-            const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
-            ss << ( i == 0 ? "  " : ( start < 100 ? " " : "" ) ) << ( start ) << ' ';
-            for(auto j = start; j < start + row_length; ++j) ss << chars_stream[j];
-            ss << ( (i % 2) ? '\n' : ' ' );
-        }
-        return ss.str();
-    }
-
-    std::pair<engine::const_chars_iter, engine::const_chars_iter> engine::look_at(std::size_t i) const
-    {
-        if ( chars_stream[i] >= 'A' && chars_stream[i] <= 'Z') // case of word
-        {
-            auto l = chars_stream.begin() + i;
+            auto l = term_chars.begin() + i;
             auto r = l;
-            while(l != chars_stream.begin() && ( *l >= 'A' && *l <= 'Z' )) --l; 
-            if ( !( *l >= 'A' && *l <= 'Z' ) ) ++l;
-            while (r != chars_stream.end() && ( *r >= 'A' && *r <= 'Z' ) ) ++r;
-            return std::make_pair(l, r);
+            while(l != term_chars.begin() && ::is_char(*l)) --l; 
+            if ( !::is_char(*l) ) ++l;
+            while (r != term_chars.end() && ::is_char(*r) ) ++r;
+            return {l, r};
         }
-        else if ( chars_stream[i] == '(' || chars_stream[i] == '[' || chars_stream[i] == '<' || chars_stream[i] == '{') // case of brackets
+        else if ( ::is_open_br(term_chars[i]) ) // case of brackets
         {
             const std::size_t j =  ( (i / 12) + 1 ) * 12;
-            const char c = ::lookup(chars_stream[i]);
-            auto e = std::find(chars_stream.begin() + i,chars_stream.begin() + j, c );
-            if(e != chars_stream.begin() + j)
+            const char c = ::lookup(term_chars[i]);
+            auto e = term_chars.begin() + j;
+            for(auto it = term_chars.begin() + i; it != e; ++it)
             {
-                return std::make_pair(chars_stream.begin() + i, e + 1);
+                if( ::is_char(*it) )
+                {
+                    e = term_chars.begin() + i;
+                    break;
+                }
+                if(*it == c)
+                {
+                    e = it;
+                    break;
+                }
+            }
+            if(e != term_chars.begin() + j)
+            {
+                return {term_chars.begin() + i, e + 1};
             }
         }
         //case of one symbol
-        return std::make_pair(chars_stream.begin() + i, chars_stream.begin() + i + 1);
+        return {term_chars.begin() + i, term_chars.begin() + i + 1};
     }
 
     // void engine::click_at(std::size_t i)

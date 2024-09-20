@@ -3,14 +3,13 @@
 #include "yafth/random.h"
 //stl
 #include <cstdint>
-#include <vector>
 #include <array>
-#include <string>
+#include <string_view>
+#include <span>
 
 namespace yafth
 {
-    // from https://geckwiki.com/index.php?title=Hacking_Word_Count
-    enum class LockLevel : uint32_t
+    enum class LockLevel
     {
         VeryEasy = 0,
         Easy = 1,
@@ -21,29 +20,26 @@ namespace yafth
 
     class engine
     {
-    private:
-        using chars_iter = std::array<char, 408>::iterator;
-        using const_chars_iter = std::array<char, 408>::const_iterator;
     public:
         engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_);
+        engine() : engine(LockLevel::Average, 50, 0) {};
+        engine(engine && e) = default;
 
-        uint32_t get_word_count() const {return wordCount;}
-        uint32_t get_word_length() const {return wordLength;}
-        uint32_t get_attempts() const {return attemptsLeft;}
+        std::size_t get_word_count() const {return wordCount;}
+        std::size_t get_word_length() const {return wordLength;}
+        std::size_t get_attempts() const {return attemptsLeft;}
 
-        const std::vector<std::string> & get_words() const {return words;}
-        const std::array<char, 408> & get_chars_stream() const {return chars_stream;}
+        auto get_words() const { return std::span(words).subspan(0, wordCount); }
+        std::string_view get_term_chars() const {return {term_chars.begin(), term_chars.end()};}
 
-        const std::string & get_log() const {return log;}
+        //std::string print_formatted() const; // debug use only!
 
-        std::string print_formatted() const; // debug use only!
-
-        std::pair<const_chars_iter, const_chars_iter> look_at(std::size_t i) const;
+        std::string_view look_at(std::size_t i) const;
         //void click_at(std::size_t i);
     private:
-        uint32_t set_word_count() noexcept;
-        uint32_t set_word_length() noexcept;
-        void generate_chars_stream() noexcept;
+        std::size_t set_word_count() noexcept;
+        std::size_t set_word_length() noexcept;
+        void generate_term_chars() noexcept;
         void generate_words() noexcept;
         void place_words() noexcept;
 
@@ -51,15 +47,14 @@ namespace yafth
 
         const LockLevel lockLevelSetting;
         const uint32_t playerScienceSkill;
-        const uint32_t wordLength;
-        const uint32_t wordCount;
-        const uint32_t answer;
+        const std::size_t wordLength;
+        const std::size_t wordCount;
+        const std::size_t answer;
 
-        uint32_t attemptsLeft = 4;
-        std::string log = "";
+        std::size_t attemptsLeft = 4;
 
-        std::vector<std::string> words;
-        std::array<char, 408> chars_stream;
-        std::vector<chars_iter> words_pointers; // pointers to words in chars_stream
+        std::array<std::string_view, 20> words;
+        std::array<char, 12 * 20> words_chars;
+        std::array<char, 408> term_chars;
     };
 } //namespace yafth
