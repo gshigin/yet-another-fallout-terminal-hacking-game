@@ -7,7 +7,7 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(yafth
-  VERSION 0.0.3
+  VERSION 0.1.0
   LANGUAGES CXX
 )
 
@@ -15,11 +15,18 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-include_directories(include)
-add_executable(yafth 
-  src/main.cpp 
+add_library(${PROJECT_NAME} SHARED
   src/engine.cpp
 )
+add_library(${PROJECT_NAME}::engine ALIAS ${PROJECT_NAME})
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+add_executable(app main.cpp)
+target_link_libraries(app PUBLIC yafth)
 
 if(MSVC)
   target_compile_options(yafth PRIVATE /W4 /WX)

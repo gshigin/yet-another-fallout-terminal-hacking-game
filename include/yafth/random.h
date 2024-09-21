@@ -4,7 +4,6 @@
 
 namespace yafth::random
 {
-
     constexpr uint64_t seed(const uint64_t seed_)
     {
         uint64_t shifted = seed_;
@@ -17,7 +16,6 @@ namespace yafth::random
     }
 
     // uses time of compilation for seeding rng
-    // good for compile-time randomness
     constexpr uint64_t seed()
     {
         uint64_t shifted = 0;
