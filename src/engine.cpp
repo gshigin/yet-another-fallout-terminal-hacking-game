@@ -31,11 +31,10 @@ namespace yafth
         , playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, 1, 100))
         , wordLength(set_word_length())
         , wordCount(set_word_count())
-        , answer(rng.next() % wordCount)
+        , wordsLeft(wordCount)
     {
         generate_term_chars();
         generate_words();
-        place_words();
     }
 
     inline std::size_t engine::set_word_length() noexcept
@@ -108,52 +107,36 @@ namespace yafth
             wordArr  = { "CONSTITUTION", "ILLUSTRATION", "CONVERSATION", "PARTICULARLY", "CONSIDERABLE", "INDEPENDENCE", "MADEMOISELLE", "SUBCUTANEOUS", "PENNSYLVANIA", "INFLAMMATION", "OCCASIONALLY", "SIGNIFICANCE", "INTERFERENCE", "TUBERCULOSIS", "LEGISLATURES", "SATISFACTION", "PHILADELPHIA", "DEGENERATION", "DISTRIBUTION", "GRANULATIONS", "UNEXPECTEDLY", "ACQUAINTANCE", "HANDKERCHIEF", "DIFFICULTIES", "INFLAMMATORY", "HEADQUARTERS", "INSTRUCTIONS", "PROCLAMATION", "CONSERVATIVE", "PREPARATIONS", "MANUFACTURES", "SURROUNDINGS", "ORGANIZATION", "RESPECTFULLY", "SATISFACTORY", "CIVILIZATION", "INTELLECTUAL", "ACCOMPLISHED", "LEUCOCYTOSIS", "NEVERTHELESS", "RATIFICATION", "REGENERATION", "OSSIFICATION", "PATHOLOGICAL", "DISPOSITIONS", "DISSATISFIED", "INSTITUTIONS", "COMBINATIONS", "NEGOTIATIONS", "PRESIDENTIAL", "SUFFICIENTLY", "CONCENTRATED", "INTRODUCTION", "ARRANGEMENTS", "CONSEQUENTLY", "ASTONISHMENT", "PROFESSIONAL", "IMPROVEMENTS", "CORPORATIONS", "DISPLACEMENT", "INDIFFERENCE", "SUBSEQUENTLY", "ACCUMULATION", "CONSTRUCTION", "INTERVENTION", "SUCCESSFULLY", "FIBROMATOSIS", "INFILTRATION", "VERESHCHAGIN", "AFFECTIONATE", "APPLICATIONS", "DELIBERATELY", "EMANCIPATION", "LYMPHANGITIS", "PASSIONATELY", "RECOLLECTION", "REPRESENTING", "RESTRICTIONS", "AGRICULTURAL", "ESTABLISHING", "IRRESISTIBLE", "ANNOUNCEMENT", "CONGRATULATE", "DEMONSTRATED", "DIFFERENTIAL", "HENDRIKHOVNA", "REQUIREMENTS", "ACCIDENTALLY", "MILORADOVICH", "COMMENCEMENT", "COMPENSATION", "DISTRIBUTING", "STRENGTHENED", "TRANQUILLITY", "ACCOMPANYING", "ADMINISTERED", "ADVANTAGEOUS", "COLONIZATION", "CONSEQUENCES", "CONSIDERABLY" };
         }
         uint32_t i = 0;
+        std::array<char, 12 * 20> words_chars;
         auto it = words_chars.begin();
+        std::array<std::string_view, 20> words_tmp;
         do
         {
             auto nextWord = wordArr[rng.next() % 100];
-            if(std::find(words.begin(), words.end(), nextWord) == words.end())
+            if(std::find(words_tmp.begin(), words_tmp.end(), nextWord) == words_tmp.end())
             {
                 std::copy(nextWord.begin(), nextWord.end(), it);
-                words[i] = std::string_view{it, it + wordLength};
+                words_tmp[i] = std::string_view{it, it + wordLength};
                 it += wordLength;
                 ++i;
             }
         } while (i < wordCount);
-    }
 
-    void engine::place_words() noexcept
-    {
         const uint32_t spacePerWord = term_chars.size() / wordCount;
         const uint32_t possibleStart = spacePerWord - wordLength;
         for(uint32_t id = 0; id < wordCount; ++id)
         {
             auto iter = term_chars.begin() + id * spacePerWord + rng.next() % possibleStart;
-            std::copy(words[id].begin(), words[id].end(), iter);
+            std::copy(words_tmp[id].begin(), words_tmp[id].end(), iter);
+            words[id] = std::distance(term_chars.begin(), iter);
         }
+
+        std::fill(words_chars.begin(), words_chars.end(), '*');
     }
-
-    // std::string engine::print_formatted() const
-    // {
-    //     constexpr uint32_t columns = 2;
-    //     constexpr uint32_t rows = 17;
-    //     constexpr uint32_t row_length = 12;
-
-    //     std::stringstream ss;
-
-    //     for(uint32_t i = 0; i < columns * rows; ++ i)
-    //     {
-    //         const uint32_t start = (i % 2) * (rows * row_length) + (i / 2) * 12;
-    //         ss << ( i == 0 ? "  " : ( start < 100 ? " " : "" ) ) << ( start ) << ' ';
-    //         for(auto j = start; j < start + row_length; ++j) ss << term_chars[j];
-    //         ss << ( (i % 2) ? '\n' : ' ' );
-    //     }
-    //     return ss.str();
-    // }
 
     std::string_view engine::look_at(std::size_t i) const
     {
-        i = std::clamp<std::size_t>(i, 0, term_chars.size());
+        i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
         if ( ::is_char(term_chars[i]) ) // case of word
         {
             auto l = term_chars.begin() + i;
@@ -163,7 +146,7 @@ namespace yafth
             while (r != term_chars.end() && ::is_char(*r) ) ++r;
             return {l, r};
         }
-        else if ( ::is_open_br(term_chars[i]) ) // case of brackets
+        else if ( ::is_open_br(term_chars[i]) && !used_bracket.test(i)) // case of brackets
         {
             const std::size_t j =  ( (i / 12) + 1 ) * 12;
             const char c = ::lookup(term_chars[i]);
@@ -190,16 +173,79 @@ namespace yafth
         return {term_chars.begin() + i, term_chars.begin() + i + 1};
     }
 
-    // void engine::click_at(std::size_t i)
-    // {
-    //     auto [b, e] = look_at(i);
-    //     if(b == e + 1)
-    //     { // nothing interesing
+    // this code is shit
+    click_status engine::click_at(std::size_t i)
+    {
+        i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
+        const std::string_view substr = look_at(i);
+        const std::string_view term{term_chars.begin(), term_chars.end()};
+        if(substr.length() != 1)
+        {
+            if(::is_char(*substr.begin())) // word
+            {
+                if( term.substr(words[answer], wordLength) == substr)
+                {
+                    return {ClickState::ExactMatch, {}};
+                }
+                else // it's not an answer
+                {
+                    --attemptsLeft;
+                    const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words[answer], 0, std::plus<>(), std::equal_to<>());
+                    const std::size_t offset = term.find(substr);
+                    std::fill(term_chars.begin() + offset, term_chars.begin() + offset + wordLength, '.');
+                    std::iter_swap(words.begin() + wordsLeft - 1, std::find(words.begin(), words.end(), offset));
+                    --wordsLeft;
+                    return {ClickState::EntryDenied, match};
+                }
+            }
+            else // bracket
+            {
+                const std::size_t dist = std::distance(term_chars.cbegin(), substr.begin()); // seem like a problem, but works fine
+                if( !used_bracket.test( dist ) )
+                {
+                    used_bracket.set( dist );
 
-    //     } 
-    //     else // brackets or word
-    //     {
-
-    //     }
-    // }
+                    if(wordsLeft == 1)
+                    {
+                        attemptsLeft = 4;
+                        return {ClickState::AllowanceReplenished, {}};
+                    }
+                    else // wordsLeft != 1
+                    {
+                        if(attemptsLeft == 4)
+                        {
+                            // remove dud
+                            std::size_t dud_id = 1 + ( rng.next() % (wordsLeft - 1 ) );
+                            const std::size_t offset = words[dud_id];
+                            std::fill(term_chars.begin() + offset, term_chars.begin() + offset + wordLength, '.');
+                            std::iter_swap(words.begin() + wordsLeft - 1, words.begin() + dud_id);
+                            --wordsLeft;
+                            
+                            return {ClickState::DudRemoved, {}};
+                        }
+                        else // attemptsLeft != 4 
+                        {
+                            if( (rng.next() & 1) == 1)
+                            {
+                                // remove dud
+                                std::size_t dud_id = 1 + ( rng.next() % (wordsLeft - 1 ) );
+                                const std::size_t offset = words[dud_id];
+                                std::fill(term_chars.begin() + offset, term_chars.begin() + offset + wordLength, '.');
+                                std::iter_swap(words.begin() + wordsLeft - 1, words.begin() + dud_id);
+                                --wordsLeft;
+                                
+                                return {ClickState::DudRemoved, {}};
+                            }
+                            else
+                            {
+                                attemptsLeft = 4;
+                                return {ClickState::AllowanceReplenished, {}};
+                            }
+                        }
+                    }
+                } 
+            }   
+        } 
+        return {ClickState::Error, {}};
+    }
 }

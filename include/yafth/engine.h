@@ -6,6 +6,8 @@
 #include <array>
 #include <string_view>
 #include <span>
+#include <optional>
+#include <bitset>
 
 namespace yafth
 {
@@ -16,6 +18,22 @@ namespace yafth
         Average = 2,
         Hard = 3,
         VeryHard = 4
+    };
+
+    enum class ClickState
+    {
+        Error, // when clicking free symbol
+        DudRemoved, // when clicked brackets, removes one wrong answer
+        AllowanceReplenished, // when clicked brackets, restores attempts
+        EntryDenied, // when clicked wrong answer
+        // LockoutInProgress, // lock after all attemps are over
+        ExactMatch // when guessed the answer
+    };
+
+    struct click_status
+    {
+        ClickState state;
+        std::optional<std::size_t> match;
     };
 
     class engine
@@ -29,19 +47,16 @@ namespace yafth
         std::size_t get_word_length() const {return wordLength;}
         std::size_t get_attempts() const {return attemptsLeft;}
 
-        auto get_words() const { return std::span(words).subspan(0, wordCount); }
+        auto get_words() const { return std::span(words).subspan(0, wordsLeft); }
         std::string_view get_term_chars() const {return {term_chars.begin(), term_chars.end()};}
 
-        //std::string print_formatted() const; // debug use only!
-
-        std::string_view look_at(std::size_t i) const;
-        //void click_at(std::size_t i);
+        std::string_view look_at(std::size_t i) const;  
+        click_status click_at(std::size_t i);
     private:
         std::size_t set_word_count() noexcept;
         std::size_t set_word_length() noexcept;
         void generate_term_chars() noexcept;
         void generate_words() noexcept;
-        void place_words() noexcept;
 
         random::xoroshiro128 rng;
 
@@ -49,12 +64,14 @@ namespace yafth
         const uint32_t playerScienceSkill;
         const std::size_t wordLength;
         const std::size_t wordCount;
-        const std::size_t answer;
+        const std::size_t answer = 0;
 
         std::size_t attemptsLeft = 4;
+        std::size_t wordsLeft;
 
-        std::array<std::string_view, 20> words;
-        std::array<char, 12 * 20> words_chars;
+        std::array<std::size_t, 20> words;
         std::array<char, 408> term_chars;
+
+        std::bitset<408> used_bracket; 
     };
 } //namespace yafth

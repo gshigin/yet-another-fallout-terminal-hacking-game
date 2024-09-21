@@ -7,7 +7,7 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(yafth
-  VERSION 0.0.4
+  VERSION 0.1.0
   LANGUAGES CXX
 )
 
