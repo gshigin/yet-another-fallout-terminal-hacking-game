@@ -4,9 +4,6 @@
 // stl
 #include <algorithm>
 #include <numeric>
-#include <utility>
-
-#include <sstream>
 
 namespace
 {
