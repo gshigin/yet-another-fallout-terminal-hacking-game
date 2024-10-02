@@ -50,7 +50,7 @@ namespace yafth
         auto get_words() const { return std::span(words).subspan(0, wordsLeft); }
         std::string_view get_term_chars() const {return {term_chars.begin(), term_chars.end()};}
 
-        std::string_view look_at(std::size_t i) const;  
+        std::pair<std::size_t, std::size_t> look_at(std::size_t i) const;  
         click_status click_at(std::size_t i);
     private:
         std::size_t set_word_count() noexcept;

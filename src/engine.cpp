@@ -131,54 +131,55 @@ namespace yafth
         std::fill(words_chars.begin(), words_chars.end(), '*');
     }
 
-    std::string_view engine::look_at(std::size_t i) const
+    std::pair<std::size_t, std::size_t> engine::look_at(std::size_t i) const
     {
         i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
         if ( ::is_char(term_chars[i]) ) // case of word
         {
-            auto l = term_chars.begin() + i;
+            auto l = i;
             auto r = l;
-            while(l != term_chars.begin() && ::is_char(*l)) --l; 
-            if ( !::is_char(*l) ) ++l;
-            while (r != term_chars.end() && ::is_char(*r) ) ++r;
+            while(l != 0 && ::is_char(term_chars[l])) --l; 
+            if ( !::is_char(term_chars[l]) ) ++l;
+            while (r != term_chars.size() && ::is_char(term_chars[r]) ) ++r;
             return {l, r};
         }
         else if ( ::is_open_br(term_chars[i]) && !used_bracket.test(i)) // case of brackets
         {
             const std::size_t j =  ( (i / 12) + 1 ) * 12;
             const char c = ::lookup(term_chars[i]);
-            auto e = term_chars.begin() + j;
-            for(auto it = term_chars.begin() + i; it != e; ++it)
+            auto e = j;
+            for(auto it = i; it != e; ++it)
             {
-                if( ::is_char(*it) )
+                if( ::is_char(term_chars[it]) )
                 {
-                    e = term_chars.begin() + i;
+                    e = i;
                     break;
                 }
-                if(*it == c)
+                if(term_chars[it] == c)
                 {
                     e = it;
                     break;
                 }
             }
-            if(e != term_chars.begin() + j)
+            if(e != j)
             {
-                return {term_chars.begin() + i, e + 1};
+                return {i, e + 1};
             }
         }
         //case of one symbol
-        return {term_chars.begin() + i, term_chars.begin() + i + 1};
+        return {i, i + 1};
     }
 
     // this code is shit
     click_status engine::click_at(std::size_t i)
     {
         i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
-        const std::string_view substr = look_at(i);
+        const auto &[b, e] = look_at(i);
+        std::string_view substr{term_chars.begin() + b, term_chars.begin() + e};
         const std::string_view term{term_chars.begin(), term_chars.end()};
-        if(substr.length() != 1)
+        if(e - b != 1)
         {
-            if(::is_char(*substr.begin())) // word
+            if(::is_char(term[b])) // word
             {
                 if( term.substr(words[answer], wordLength) == substr)
                 {

@@ -1,4 +1,5 @@
 #include "yafth/engine.h"
+#include "yafth/random.h"
 
 #include <array>
 #include <numeric>
@@ -17,26 +18,44 @@ using namespace ftxui;
 
 struct terminal_state
 {
-  terminal_state(const yafth::LockLevel ll, const uint32_t pss, const uint64_t s) : eng{ll, pss, s} {}
-
+  terminal_state(const yafth::LockLevel ll, const uint32_t pss, const uint64_t s) 
+  : eng{ll, pss, s}, 
+    hex{yafth::random::xoroshiro128{static_cast<uint64_t>(-1), yafth::random::seed(s)}.next()}
+  {}
+  
   yafth::engine eng;
   int highlight_begin = -1;
   int highlight_end = -1;
-  std::string log = "";
+  std::string log = ">>>";
+  uint64_t hex = 0;
 };
 
 int main() {
   // initialize engine
-  terminal_state shared_term(yafth::LockLevel::Average, 65, 1ull);
+  terminal_state shared_term(yafth::LockLevel::Average, 65, time(0));
+  yafth::engine & engine = shared_term.eng;
+
+  auto screen = ScreenInteractive::FitComponent();
 
   // First horizontal window (static, height 5).
-  auto top_window = vbox({
-    text("ROBCO INDUSTRIES (TM) TERMLINK PROTOCOL"),
-    text("!!! WARNING: LOCKOUT IMMINENT !!!"),
-    text(""),
-    text("1 ATTEMPT(S) LEFT : X"),
-    text(""),
-  }) | size(HEIGHT, EQUAL, 5);
+  auto attempts_window = Renderer([&] {
+    auto attempts = shared_term.eng.get_attempts();
+    std::string attempts_text = std::to_string(attempts) + " ATTEMPT(S) LEFT : ";
+
+    Elements attempt_elements;
+    for (int i = 0; i < attempts; ++i) {
+      attempt_elements.push_back(text(" ") | inverted);
+      attempt_elements.push_back(text(" "));
+    }
+
+    return vbox({
+      text("ROBCO INDUSTRIES (TM) TERMLINK PROTOCOL"),
+      text("!!! WARNING: LOCKOUT IMMINENT !!!"),
+      text(""),
+      hbox({text(attempts_text), hbox(attempt_elements)}),
+      text(""),
+    }) | size(HEIGHT, EQUAL, 5);
+  });
 
   // Vertical sub-windows: two interactive and three static.
 
@@ -44,7 +63,8 @@ int main() {
   auto static_window_1 = vbox(
     [&](){
       std::vector<ftxui::Element> hexes;
-      int start = 1234567 & 0xFFFF;
+      auto & start = shared_term.hex;
+      start &= 0xFFFF;
       for (int i = 0; i < 17; ++i) 
       {
         std::stringstream stream;
@@ -59,20 +79,69 @@ int main() {
   auto interactive_window_1 = Renderer([&] {
     return vbox([&](){
       std::vector<ftxui::Element> lines;
-      auto s = engine.get_term_chars();
+      auto s = shared_term.eng.get_term_chars();
       for(int i = 0; i < 17; ++i)
       {
-        lines.push_back(ftxui::text(std::string{s.begin() + i * 12, s.begin() + (i + 1) * 12}));
+        std::vector<ftxui::Element> line;
+        for(auto j = i * 12; j < (i + 1) * 12; ++j)
+        {
+          if(shared_term.highlight_begin <= j && j < shared_term.highlight_end)
+          {
+            line.push_back(text(std::string{s[j]}) | inverted);
+          }
+          else
+          {
+            line.push_back(text(std::string{s[j]}));
+          }
+        }
+        lines.push_back(hbox(line));
       }
       return lines;
     }());
+  }) ;
+
+  auto mouse_handler = CatchEvent([&](Event event) 
+  {
+    if(event.is_mouse())
+    {
+      shared_term.log = std::to_string(event.mouse().x) + " " + std::to_string(event.mouse().y);
+      auto m_x = event.mouse().x;
+      auto m_y = event.mouse().y;
+
+      if( (8 <= m_x && m_x <= 19) && (6 <= m_y && m_y <= 22) ) // first window
+      {
+        m_x -= 8;
+        m_y -= 6;
+      }
+      else if( (28 <= m_x && m_x <= 39) && (6 <= m_y && m_y <= 22) ) // first window
+      {
+        m_x -= 28;
+        m_y -= 6;
+        m_y += 17;
+      }
+      else {
+        shared_term.highlight_begin = -1;
+        shared_term.highlight_end = -1;
+        return false;        
+      }
+
+      const auto & [b, e] = shared_term.eng.look_at(12*m_y + m_x);
+
+      shared_term.highlight_begin = b;
+      shared_term.highlight_end = e;
+
+      screen.PostEvent(Event::Custom);
+      return true;
+    }
+    return false;
   });
 
   // Third static vertical window.
   auto static_window_2 = vbox(
     [&](){
       std::vector<ftxui::Element> hexes;
-      int start = 7654321 & 0xFFFF;
+      auto & start = shared_term.hex;
+      start &= 0xFFFF;
       for (int i = 0; i < 17; ++i) 
       {
         std::stringstream stream;
@@ -87,44 +156,63 @@ int main() {
   auto interactive_window_2 = Renderer([&] {
     return vbox([&](){
       std::vector<ftxui::Element> lines;
-      auto s = engine.get_term_chars();
+      auto s = shared_term.eng.get_term_chars();
       for(int i = 17; i < 34; ++i)
       {
-        lines.push_back(ftxui::text(std::string{s.begin() + i * 12, s.begin() + (i + 1) * 12}));
+        std::vector<ftxui::Element> line;
+        for(auto j = i * 12; j < (i + 1) * 12; ++j)
+        {
+          if(shared_term.highlight_begin <= j && j < shared_term.highlight_end)
+          {
+            line.push_back(text(std::string{s[j]}) | inverted);
+          }
+          else
+          {
+            line.push_back(text(std::string{s[j]}));
+          }
+        }
+        lines.push_back(hbox(line));
       }
       return lines;
     }());
   });
 
   // Fifth static vertical window.
-  auto static_window_3 = vbox({
-    text("Static Window 3"),
-    separator(),
-    text("Final static content"),
+  auto log_window = Renderer([&] {
+    return vbox({
+      text(shared_term.log)
+    });
   });
 
   // Combine the vertical windows into a horizontal container (height 17).
-  auto bottom_windows = hbox({
-    static_window_1 | size(WIDTH, EQUAL, 6),
-    text(" "),
-    interactive_window_1->Render() | size(WIDTH, EQUAL, 12),
-    text(" "),
-    static_window_2 | size(WIDTH, EQUAL, 6),
-    text(" "),
-    interactive_window_2->Render() | size(WIDTH, EQUAL, 12),
-    text(" "),
-    static_window_3 | size(WIDTH, EQUAL, 10),
-  }) | size(HEIGHT, EQUAL, 17);
+  auto bottom_windows = Renderer([&] {
+      return  hbox({
+      static_window_1 | size(WIDTH, EQUAL, 6),
+      text(" "),
+      interactive_window_1->Render() | size(WIDTH, EQUAL, 12) | size(WIDTH, EQUAL, 12),
+      text(" "),
+      static_window_2 | size(WIDTH, EQUAL, 6),
+      text(" "),
+      interactive_window_2->Render() | size(WIDTH, EQUAL, 12),
+      text(" "),
+      log_window->Render() | size(WIDTH, EQUAL, 10),
+    }) | size(HEIGHT, EQUAL, 17);
+  });
+
+ 
 
   // Main layout combining the top window and bottom windows.
-  auto main_container = vbox({
-    top_window,
-    bottom_windows,
-  }) | size(WIDTH, EQUAL, 53) | size(HEIGHT, EQUAL, 22) | border;
+  auto main_container = Renderer([&] {
+    return vbox({
+      attempts_window->Render(),
+      bottom_windows->Render(),
+    }) | size(WIDTH, EQUAL, 53) | size(HEIGHT, EQUAL, 22) | border;
+  });
+  
+
 
   // Create the screen and loop.
-  auto screen = ScreenInteractive::FitComponent();
-  screen.Loop(Renderer([&](){ return main_container; }));
+  screen.Loop(main_container | mouse_handler);
 
   return 0;
 }
