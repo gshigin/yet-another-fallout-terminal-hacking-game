@@ -44,15 +44,15 @@ namespace yafth
     {
         constexpr std::size_t iHackingMinWords = 5;
         constexpr std::size_t iHackingMaxWords = 20;
-        const std::size_t lockLevel = (static_cast<std::size_t>(lockLevelSetting) * 0.25) * 100;
+        const std::size_t lockLevel = static_cast<std::size_t>(lockLevelSetting) * 25;
         const std::size_t scienceOffset = playerScienceSkill - lockLevel;
         const std::size_t lockOffset = 100 - lockLevel;
 
         const double sol_coef = lockOffset == 0 ? 0.5 : (1 - ( (1.0 * scienceOffset) / lockOffset) ); // scienceOffset over lockOffset coef
 
-        const std::size_t wordCount = (sol_coef * (iHackingMaxWords - iHackingMinWords)) + iHackingMinWords;
+        const std::size_t wordCount_ = static_cast<std::size_t>(sol_coef * (iHackingMaxWords - iHackingMinWords)) + iHackingMinWords;
         
-        return std::min<std::size_t>(20, wordCount);
+        return std::min<std::size_t>(20, wordCount_);
     }
 
     void engine::generate_term_chars() noexcept
@@ -103,7 +103,7 @@ namespace yafth
         {
             wordArr  = { "CONSTITUTION", "ILLUSTRATION", "CONVERSATION", "PARTICULARLY", "CONSIDERABLE", "INDEPENDENCE", "MADEMOISELLE", "SUBCUTANEOUS", "PENNSYLVANIA", "INFLAMMATION", "OCCASIONALLY", "SIGNIFICANCE", "INTERFERENCE", "TUBERCULOSIS", "LEGISLATURES", "SATISFACTION", "PHILADELPHIA", "DEGENERATION", "DISTRIBUTION", "GRANULATIONS", "UNEXPECTEDLY", "ACQUAINTANCE", "HANDKERCHIEF", "DIFFICULTIES", "INFLAMMATORY", "HEADQUARTERS", "INSTRUCTIONS", "PROCLAMATION", "CONSERVATIVE", "PREPARATIONS", "MANUFACTURES", "SURROUNDINGS", "ORGANIZATION", "RESPECTFULLY", "SATISFACTORY", "CIVILIZATION", "INTELLECTUAL", "ACCOMPLISHED", "LEUCOCYTOSIS", "NEVERTHELESS", "RATIFICATION", "REGENERATION", "OSSIFICATION", "PATHOLOGICAL", "DISPOSITIONS", "DISSATISFIED", "INSTITUTIONS", "COMBINATIONS", "NEGOTIATIONS", "PRESIDENTIAL", "SUFFICIENTLY", "CONCENTRATED", "INTRODUCTION", "ARRANGEMENTS", "CONSEQUENTLY", "ASTONISHMENT", "PROFESSIONAL", "IMPROVEMENTS", "CORPORATIONS", "DISPLACEMENT", "INDIFFERENCE", "SUBSEQUENTLY", "ACCUMULATION", "CONSTRUCTION", "INTERVENTION", "SUCCESSFULLY", "FIBROMATOSIS", "INFILTRATION", "VERESHCHAGIN", "AFFECTIONATE", "APPLICATIONS", "DELIBERATELY", "EMANCIPATION", "LYMPHANGITIS", "PASSIONATELY", "RECOLLECTION", "REPRESENTING", "RESTRICTIONS", "AGRICULTURAL", "ESTABLISHING", "IRRESISTIBLE", "ANNOUNCEMENT", "CONGRATULATE", "DEMONSTRATED", "DIFFERENTIAL", "HENDRIKHOVNA", "REQUIREMENTS", "ACCIDENTALLY", "MILORADOVICH", "COMMENCEMENT", "COMPENSATION", "DISTRIBUTING", "STRENGTHENED", "TRANQUILLITY", "ACCOMPANYING", "ADMINISTERED", "ADVANTAGEOUS", "COLONIZATION", "CONSEQUENCES", "CONSIDERABLY" };
         }
-        uint32_t i = 0;
+        std::size_t i = 0;
         std::array<char, 12 * 20> words_chars;
         auto it = words_chars.begin();
         std::array<std::string_view, 20> words_tmp;
@@ -119,9 +119,9 @@ namespace yafth
             }
         } while (i < wordCount);
 
-        const uint32_t spacePerWord = term_chars.size() / wordCount;
-        const uint32_t possibleStart = spacePerWord - wordLength;
-        for(uint32_t id = 0; id < wordCount; ++id)
+        const std::size_t spacePerWord = term_chars.size() / wordCount;
+        const std::size_t possibleStart = spacePerWord - wordLength;
+        for(std::size_t id = 0; id < wordCount; ++id)
         {
             auto iter = term_chars.begin() + id * spacePerWord + rng.next() % possibleStart;
             std::copy(words_tmp[id].begin(), words_tmp[id].end(), iter);
@@ -197,7 +197,7 @@ namespace yafth
             }
             else // bracket
             {
-                const std::size_t dist = std::distance(term_chars.cbegin(), substr.begin()); // seem like a problem, but works fine
+                const std::size_t dist = std::distance<const char *>(term_chars.data(), substr.data()); // seem like a problem, but works fine
                 if( !used_bracket.test( dist ) )
                 {
                     used_bracket.set( dist );

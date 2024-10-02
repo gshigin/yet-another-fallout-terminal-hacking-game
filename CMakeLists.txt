@@ -15,6 +15,9 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# Hack for now, need good macros for exports later
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 add_library(${PROJECT_NAME} SHARED
   src/engine.cpp
 )
