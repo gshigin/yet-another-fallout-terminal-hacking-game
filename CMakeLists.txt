@@ -30,26 +30,18 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 include(FetchContent)
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
-set(FETCHCONTENT_QUIET FALSE)
-
 FetchContent_Declare(ftxui
   GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
   GIT_TAG v5.0.0
-  GIT_PROGRESS TRUE
-  GIT_SHALLOW FALSE
-  EXCLUDE_FROM_ALL
-  FIND_PACKAGE_ARGS NAMES ftxui
 )
-
 FetchContent_GetProperties(ftxui)
-if(ftxui_POPULATED)
-  return()
+if(NOT ftxui_POPULATED)
+  FetchContent_Populate(ftxui)
+  add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-FetchContent_MakeAvailable(ftxui)
-
 add_executable(app main.cpp)
-target_link_libraries(app PUBLIC yafth::engine)
+target_link_libraries(app PUBLIC yafth)
 
 target_link_libraries(app
   PRIVATE ftxui::screen
@@ -58,7 +50,6 @@ target_link_libraries(app
 )
 
 if(MSVC)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   target_compile_options(yafth PRIVATE /W4 /WX)
 else()
   target_compile_options(yafth PRIVATE -Wall -Wextra -Wpedantic -Werror)
