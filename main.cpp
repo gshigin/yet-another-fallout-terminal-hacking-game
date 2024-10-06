@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "ftxui/component/animation.hpp"       // for BackOut, Duration
 #include <ftxui/component/component.hpp>       // for Button, Renderer, etc.
 #include <ftxui/component/screen_interactive.hpp>  // for ScreenInteractive
 #include <ftxui/dom/elements.hpp>              // for text, separator, etc.
@@ -26,8 +27,10 @@ struct terminal_state
   yafth::engine eng;
   int highlight_begin = -1;
   int highlight_end = -1;
-  std::string log = ">>>";
+  std::vector<ftxui::Element> log = {};
+  std::string last_loocked = "";
   uint64_t hex = 0;
+  bool end_game = false;
 };
 
 int main() {
@@ -48,9 +51,11 @@ int main() {
       attempt_elements.push_back(text(" "));
     }
 
+    std::string warning = attempts <= 1 ? "!!! WARNING: LOCKOUT IMMINENT !!!" : "ENTER PASSWORD NOW";
+
     return vbox({
       text("ROBCO INDUSTRIES (TM) TERMLINK PROTOCOL"),
-      text("!!! WARNING: LOCKOUT IMMINENT !!!"),
+      text(warning),
       text(""),
       hbox({text(attempts_text), hbox(attempt_elements)}),
       text(""),
@@ -102,9 +107,16 @@ int main() {
 
   auto mouse_handler = CatchEvent([&](Event event) 
   {
+    if(shared_term.end_game)
+    {
+      shared_term.highlight_begin = -1;
+      shared_term.highlight_end = -1;
+      shared_term.last_loocked = "";
+      screen.PostEvent(Event::Custom);
+      screen.ExitLoopClosure()();
+    }
     if(event.is_mouse())
     {
-      shared_term.log = std::to_string(event.mouse().x) + " " + std::to_string(event.mouse().y);
       auto m_x = event.mouse().x;
       auto m_y = event.mouse().y;
 
@@ -129,8 +141,66 @@ int main() {
 
       shared_term.highlight_begin = b;
       shared_term.highlight_end = e;
+      shared_term.last_loocked = shared_term.eng.get_term_chars().substr(b, e - b);
 
       screen.PostEvent(Event::Custom);
+
+      if(event.mouse().button == Mouse::Left && event.mouse().motion == Mouse::Pressed)
+      {
+        auto cs = shared_term.eng.click_at(12*m_y + m_x);
+        switch (cs.state)
+        {
+        case yafth::ClickState::Error :
+          break;
+        case yafth::ClickState::DudRemoved :
+          shared_term.log.push_back(text(">" + shared_term.last_loocked));
+          shared_term.log.push_back(text(">Dud Removed."));
+          shared_term.last_loocked= "";
+          break;
+        case yafth::ClickState::AllowanceReplenished :
+          shared_term.log.push_back(text(">" + shared_term.last_loocked));
+          shared_term.log.push_back(text(">Allowance"));
+          shared_term.log.push_back(text(">Replenished"));
+          shared_term.last_loocked= "";
+          break;
+        case yafth::ClickState::EntryDenied :
+          shared_term.log.push_back(text(">" + shared_term.last_loocked));
+          shared_term.log.push_back(text(">Entry Denied"));
+          shared_term.log.push_back(text(">" + std::to_string(cs.match.value()) + "/" + std::to_string(shared_term.eng.get_word_length()) + " correct."));
+          shared_term.last_loocked= "";
+          break;
+        case yafth::ClickState::LockoutInProgress :
+          shared_term.log.push_back(text(">" + shared_term.last_loocked));
+          shared_term.log.push_back(text(">Entry Denied"));
+          shared_term.log.push_back(text(">" + std::to_string(cs.match.value()) + "/" + std::to_string(shared_term.eng.get_word_length()) + " correct."));
+          shared_term.log.push_back(text(">Lockout in"));
+          shared_term.log.push_back(text(">progress."));
+          shared_term.last_loocked= "";
+          shared_term.end_game = true;
+          break;
+        case yafth::ClickState::ExactMatch :
+          shared_term.log.push_back(text(">" + shared_term.last_loocked));
+          shared_term.log.push_back(text(">Exact match!"));
+          shared_term.log.push_back(text(">Please wait"));
+          shared_term.log.push_back(text(">while system"));
+          shared_term.log.push_back(text(">is accesed."));
+          shared_term.last_loocked= "";
+          shared_term.end_game = true;
+          break;
+        default:
+          break;
+        }
+
+        if (shared_term.log.size() > 15)
+        {
+          std::size_t to_erase = shared_term.log.size() - 15;
+          shared_term.log.erase(shared_term.log.begin(), shared_term.log.begin() + to_erase);
+        }
+
+        screen.PostEvent(Event::Custom);
+
+        return true;
+      }
       return true;
     }
     return false;
@@ -180,7 +250,10 @@ int main() {
   // Fifth static vertical window.
   auto log_window = Renderer([&] {
     return vbox({
-      text(shared_term.log)
+      filler(),
+      vbox(shared_term.log),
+      text(""),
+      text(">" + shared_term.last_loocked),
     });
   });
 
@@ -195,11 +268,9 @@ int main() {
       text(" "),
       interactive_window_2->Render() | size(WIDTH, EQUAL, 12),
       text(" "),
-      log_window->Render() | size(WIDTH, EQUAL, 10),
+      log_window->Render() | size(WIDTH, EQUAL, 13),
     }) | size(HEIGHT, EQUAL, 17);
   });
-
- 
 
   // Main layout combining the top window and bottom windows.
   auto main_container = Renderer([&] {
@@ -208,8 +279,6 @@ int main() {
       bottom_windows->Render(),
     }) | size(WIDTH, EQUAL, 53) | size(HEIGHT, EQUAL, 22) | border;
   });
-  
-
 
   // Create the screen and loop.
   screen.Loop(main_container | mouse_handler);

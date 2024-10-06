@@ -26,7 +26,7 @@ namespace yafth
         DudRemoved, // when clicked brackets, removes one wrong answer
         AllowanceReplenished, // when clicked brackets, restores attempts
         EntryDenied, // when clicked wrong answer
-        // LockoutInProgress, // lock after all attemps are over
+        LockoutInProgress, // lock after all attemps are over
         ExactMatch // when guessed the answer
     };
 
@@ -38,6 +38,7 @@ namespace yafth
 
     class engine
     {
+        enum class EngineStatus { Running, Done };
     public:
         engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_);
         engine() : engine(LockLevel::Average, 50, 0) {};
@@ -64,7 +65,7 @@ namespace yafth
         const uint32_t playerScienceSkill;
         const std::size_t wordLength;
         const std::size_t wordCount;
-        const std::size_t answer = 0;
+        const std::size_t answer;
 
         std::size_t attemptsLeft = 4;
         std::size_t wordsLeft;
@@ -72,6 +73,8 @@ namespace yafth
         std::array<std::size_t, 20> words;
         std::array<char, 408> term_chars;
 
-        std::bitset<408> used_bracket; 
+        std::bitset<408> used_bracket;
+
+        EngineStatus internal_state = EngineStatus::Running;
     };
 } //namespace yafth

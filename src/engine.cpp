@@ -22,12 +22,24 @@ namespace
 
 namespace yafth
 {
+    class bad_engine_acces : public std::exception 
+    {
+    public:
+        const char* what() const noexcept override {
+            return "Trying to call yafth::engine when it's in Done state";
+    }
+};
+}
+
+namespace yafth
+{
     engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_ = 0) 
         : rng(0, random::seed(seed_))
         , lockLevelSetting(lockLevelSetting_)
         , playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, 1, 100))
         , wordLength(set_word_length())
         , wordCount(set_word_count())
+        , answer(rng.next() % wordCount)
         , wordsLeft(wordCount)
     {
         generate_term_chars();
@@ -127,8 +139,6 @@ namespace yafth
             std::copy(words_tmp[id].begin(), words_tmp[id].end(), iter);
             words[id] = std::distance(term_chars.begin(), iter);
         }
-
-        std::fill(words_chars.begin(), words_chars.end(), '*');
     }
 
     std::pair<std::size_t, std::size_t> engine::look_at(std::size_t i) const
@@ -173,6 +183,10 @@ namespace yafth
     // this code is shit
     click_status engine::click_at(std::size_t i)
     {
+        if(internal_state == EngineStatus::Done)
+        {
+            throw yafth::bad_engine_acces();
+        }
         i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
         const auto &[b, e] = look_at(i);
         std::string_view substr{term_chars.begin() + b, term_chars.begin() + e};
@@ -183,6 +197,7 @@ namespace yafth
             {
                 if( term.substr(words[answer], wordLength) == substr)
                 {
+                    internal_state = EngineStatus::Done;
                     return {ClickState::ExactMatch, {}};
                 }
                 else // it's not an answer
@@ -193,6 +208,13 @@ namespace yafth
                     std::fill(term_chars.begin() + offset, term_chars.begin() + offset + wordLength, '.');
                     std::iter_swap(words.begin() + wordsLeft - 1, std::find(words.begin(), words.end(), offset));
                     --wordsLeft;
+
+                    if(attemptsLeft == 0)
+                    {
+                        internal_state = EngineStatus::Done;
+                        return {ClickState::LockoutInProgress, match};
+                    }
+
                     return {ClickState::EntryDenied, match};
                 }
             }
