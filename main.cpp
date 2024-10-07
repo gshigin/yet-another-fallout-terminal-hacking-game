@@ -40,7 +40,6 @@ int main()
 
     auto screen = ScreenInteractive::FitComponent();
 
-    // First horizontal window (static, height 5).
     auto attempts_window = Renderer([&] {
         auto attempts = shared_term.eng.get_attempts();
         std::string attempts_text = std::to_string(attempts) + " ATTEMPT(S) LEFT : ";
@@ -64,10 +63,7 @@ int main()
                size(HEIGHT, EQUAL, 5);
     });
 
-    // Vertical sub-windows: two interactive and three static.
-
-    // First static vertical window.
-    auto static_window_1 = vbox([&]() {
+    auto hex_window_1 = vbox([&]() {
         std::vector<ftxui::Element> hexes;
         auto &start = shared_term.hex;
         start &= 0xFFFF;
@@ -81,7 +77,6 @@ int main()
         return hexes;
     }());
 
-    // Second interactive vertical window.
     auto interactive_window_1 = Renderer([&] {
         return vbox([&]() {
             std::vector<ftxui::Element> lines;
@@ -209,8 +204,7 @@ int main()
         return false;
     });
 
-    // Third static vertical window.
-    auto static_window_2 = vbox([&]() {
+    auto hex_window_2 = vbox([&]() {
         std::vector<ftxui::Element> hexes;
         auto &start = shared_term.hex;
         start &= 0xFFFF;
@@ -224,7 +218,6 @@ int main()
         return hexes;
     }());
 
-    // Fourth interactive vertical window.
     auto interactive_window_2 = Renderer([&] {
         return vbox([&]() {
             std::vector<ftxui::Element> lines;
@@ -249,7 +242,6 @@ int main()
         }());
     });
 
-    // Fifth static vertical window.
     auto log_window = Renderer([&] {
         return vbox({
             filler(),
@@ -259,14 +251,13 @@ int main()
         });
     });
 
-    // Combine the vertical windows into a horizontal container (height 17).
     auto bottom_windows = Renderer([&] {
         return hbox({
-                   static_window_1 | size(WIDTH, EQUAL, 6),
+                   hex_window_1 | size(WIDTH, EQUAL, 6),
                    text(" "),
                    interactive_window_1->Render() | size(WIDTH, EQUAL, 12) | size(WIDTH, EQUAL, 12),
                    text(" "),
-                   static_window_2 | size(WIDTH, EQUAL, 6),
+                   hex_window_2 | size(WIDTH, EQUAL, 6),
                    text(" "),
                    interactive_window_2->Render() | size(WIDTH, EQUAL, 12),
                    text(" "),

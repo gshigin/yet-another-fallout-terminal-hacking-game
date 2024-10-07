@@ -16,6 +16,12 @@ constexpr auto lookup = [](const char c) {
 
 constexpr auto is_char = [](const char c) { return c >= 'A' && c <= 'Z'; };
 constexpr auto is_open_br = [](const char c) { return c == '(' || c == '[' || c == '<' || c == '{'; };
+
+constexpr uint32_t playerScienceSkillMin = 1;
+constexpr uint32_t playerScienceSkillMax = 100;
+
+constexpr uint32_t maxWordLength = 12;
+constexpr uint32_t maxWordCount = 20;
 } // namespace
 
 namespace yafth
@@ -23,7 +29,7 @@ namespace yafth
 class bad_engine_acces : public std::exception
 {
   public:
-    const char *what() const noexcept override
+    [[nodiscard]] const char *what() const noexcept override
     {
         return "Trying to call yafth::engine when it's in Done state";
     }
@@ -34,7 +40,7 @@ namespace yafth
 {
 engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSkill_, const uint64_t seed_ = 0)
     : rng(0, random::seed(seed_)), lockLevelSetting(lockLevelSetting_),
-      playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, 1, 100)), wordLength(set_word_length()),
+      playerScienceSkill(std::clamp<uint32_t>(playerScienceSkill_, playerScienceSkillMin, playerScienceSkillMax)), wordLength(set_word_length()),
       wordCount(set_word_count()), answer(rng.next() % wordCount), wordsLeft(wordCount)
 {
     generate_term_chars();
@@ -43,7 +49,7 @@ engine::engine(const LockLevel lockLevelSetting_, const uint32_t playerScienceSk
 
 inline std::size_t engine::set_word_length() noexcept
 {
-    return std::min<std::size_t>(12, 4 + 2 * static_cast<std::size_t>(lockLevelSetting) + (rng.next() & 1));
+    return std::min<std::size_t>(maxWordLength, 4 + 2 * static_cast<std::size_t>(lockLevelSetting) + (rng.next() & 1));
 }
 
 // from https://geckwiki.com/index.php?title=Hacking_Word_Count
@@ -56,12 +62,12 @@ std::size_t engine::set_word_count() noexcept
     const std::size_t lockOffset = 100 - lockLevel;
 
     const double sol_coef =
-        lockOffset == 0 ? 0.5 : (1 - ((1.0 * scienceOffset) / lockOffset)); // scienceOffset over lockOffset coef
+        lockOffset == 0 ? 0.5 : (1 - (static_cast<double>(scienceOffset) / static_cast<double>(lockOffset))); // scienceOffset over lockOffset coef
 
     const std::size_t wordCount_ =
         static_cast<std::size_t>(sol_coef * (iHackingMaxWords - iHackingMinWords)) + iHackingMinWords;
 
-    return std::min<std::size_t>(20, wordCount_);
+    return std::min<std::size_t>(maxWordCount, wordCount_);
 }
 
 void engine::generate_term_chars() noexcept
@@ -70,13 +76,14 @@ void engine::generate_term_chars() noexcept
                                                    '%', '$', '|', '@', '{', '}', '[', ']',  '(', ')', '<', '>'};
     for (auto &c : term_chars)
     {
-        c = placeholders[rng.next() % 24];
+        c = placeholders[rng.next() % placeholders.size()];
     }
 }
 
 void engine::generate_words() noexcept
 {
-    std::array<std::string, 100> wordArr{};
+    constexpr size_t wordArrSize = 100;
+    std::array<std::string, wordArrSize> wordArr{};
     if (wordLength == 4)
     {
         wordArr = {"THAT", "WITH", "FROM", "WERE", "THIS", "THEY", "HAVE", "SAID", "WHAT", "WHEN", "BEEN", "THEM",
@@ -221,17 +228,17 @@ void engine::generate_words() noexcept
                    "ADVANTAGEOUS", "COLONIZATION", "CONSEQUENCES", "CONSIDERABLY"};
     }
     std::size_t i = 0;
-    std::array<char, 12 * 20> words_chars;
+    std::array<char, maxWordCount * maxWordLength> words_chars;
     auto it = words_chars.begin();
-    std::array<std::string_view, 20> words_tmp;
+    std::array<std::string_view, maxWordCount> words_tmp;
     do
     {
-        auto nextWord = wordArr[rng.next() % 100];
+        auto nextWord = wordArr[rng.next() % wordArrSize];
         if (std::find(words_tmp.begin(), words_tmp.end(), nextWord) == words_tmp.end())
         {
             std::copy(nextWord.begin(), nextWord.end(), it);
-            words_tmp[i] = std::string_view{it, it + wordLength};
-            it += wordLength;
+            words_tmp[i] = std::string_view{it, std::next(it, wordLength)};
+            std::advance(it, wordLength);
             ++i;
         }
     } while (i < wordCount);
