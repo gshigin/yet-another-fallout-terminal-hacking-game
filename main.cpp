@@ -1,5 +1,5 @@
-#include "yafth/engine.h"
-#include "yafth/random.h"
+#include "yafth/core/engine.h"
+#include "yafth/util/random.h"
 
 #include <array>
 #include <numeric>
@@ -18,12 +18,12 @@ using namespace ftxui;
 
 struct terminal_state
 {
-    terminal_state(const yafth::LockLevel ll, const uint32_t pss, const uint64_t s)
+    terminal_state(const yafth::core::LockLevel ll, const uint32_t pss, const uint64_t s)
         : eng{ll, pss, s}, hex{yafth::random::xoroshiro128{static_cast<uint64_t>(-1), yafth::random::seed(s)}.next()}
     {
     }
 
-    yafth::engine eng;
+    yafth::core::engine eng;
     int highlight_begin = -1;
     int highlight_end = -1;
     std::vector<ftxui::Element> log = {};
@@ -35,8 +35,8 @@ struct terminal_state
 int main()
 {
     // initialize engine
-    terminal_state shared_term(yafth::LockLevel::Average, 65, time(0));
-    yafth::engine &engine = shared_term.eng;
+    terminal_state shared_term(yafth::core::LockLevel::Average, 65, time(0));
+    yafth::core::engine &engine = shared_term.eng;
 
     auto screen = ScreenInteractive::FitComponent();
 
@@ -146,27 +146,27 @@ int main()
                 auto cs = shared_term.eng.click_at(12 * m_y + m_x);
                 switch (cs.state)
                 {
-                case yafth::ClickState::Error:
+                case yafth::core::ClickState::Error:
                     break;
-                case yafth::ClickState::DudRemoved:
+                case yafth::core::ClickState::DudRemoved:
                     shared_term.log.push_back(text(">" + shared_term.last_loocked));
                     shared_term.log.push_back(text(">Dud Removed."));
                     shared_term.last_loocked = "";
                     break;
-                case yafth::ClickState::AllowanceReplenished:
+                case yafth::core::ClickState::AllowanceReplenished:
                     shared_term.log.push_back(text(">" + shared_term.last_loocked));
                     shared_term.log.push_back(text(">Allowance"));
                     shared_term.log.push_back(text(">Replenished"));
                     shared_term.last_loocked = "";
                     break;
-                case yafth::ClickState::EntryDenied:
+                case yafth::core::ClickState::EntryDenied:
                     shared_term.log.push_back(text(">" + shared_term.last_loocked));
                     shared_term.log.push_back(text(">Entry Denied"));
                     shared_term.log.push_back(text(">" + std::to_string(cs.match.value()) + "/" +
                                                    std::to_string(shared_term.eng.get_word_length()) + " correct."));
                     shared_term.last_loocked = "";
                     break;
-                case yafth::ClickState::LockoutInProgress:
+                case yafth::core::ClickState::LockoutInProgress:
                     shared_term.log.push_back(text(">" + shared_term.last_loocked));
                     shared_term.log.push_back(text(">Entry Denied"));
                     shared_term.log.push_back(text(">" + std::to_string(cs.match.value()) + "/" +
@@ -176,7 +176,7 @@ int main()
                     shared_term.last_loocked = "";
                     shared_term.end_game = true;
                     break;
-                case yafth::ClickState::ExactMatch:
+                case yafth::core::ClickState::ExactMatch:
                     shared_term.log.push_back(text(">" + shared_term.last_loocked));
                     shared_term.log.push_back(text(">Exact match!"));
                     shared_term.log.push_back(text(">Please wait"));

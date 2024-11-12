@@ -19,7 +19,7 @@ endif()
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(${PROJECT_NAME} SHARED
-  src/engine.cpp
+  src/core/engine.cpp
 )
 add_library(${PROJECT_NAME}::engine ALIAS ${PROJECT_NAME})
 
