@@ -1,1 +1,51 @@
 BasedOnStyle: Microsoft
+
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: Left
+EscapedNewlineAlignmentStyle: LeftWithLastLine
+AlignOperands: AlignAfterOperator
+AlignTrailingComments: Never
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortCompoundRequirementOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: false
+BinPackParametersStyle: OnePerLine
+BitFieldColonSpacingStyle: Both
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion : true
+  AfterExternBlock: true
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: true
+  BeforeWhile: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+  BraceWrappingAfterControlStatementStyle: Always
+BreakBeforeConceptDeclarations: Allowed
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+BreakTemplateDeclarations: Yes
+CompactNamespaces: true
+Cpp11BracedListStyle: false
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: Never
+NamespaceIndentation: None
+PointerAlignment: Middle
+ReferenceAlignment: Middle
+RequiresClausePosition: OwnLine
+RequiresExpressionIndentation: OuterScope
+SpaceAfterTemplateKeyword: false

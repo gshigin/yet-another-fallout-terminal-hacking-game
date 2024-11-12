@@ -1,7 +1,7 @@
 #pragma once
 // yafth
-#include <yafth/util/random.h>
 #include <yafth/core/types.h>
+#include <yafth/util/random.h>
 // stl
 #include <array>
 #include <bitset>
@@ -22,12 +22,12 @@ enum class lock_level
 
 enum class click_result
 {
-    error,                  // when clicking free symbol
-    dud_removed,            // when clicked brackets, removes one wrong answer
-    allowance_replenished,  // when clicked brackets, restores attempts
-    entry_denied,           // when clicked wrong answer
-    lockout_in_progress,    // lock after all attemps are over
-    exact_match             // when guessed the answer
+    error, // when clicking free symbol
+    dud_removed, // when clicked brackets, removes one wrong answer
+    allowance_replenished, // when clicked brackets, restores attempts
+    entry_denied, // when clicked wrong answer
+    lockout_in_progress, // lock after all attemps are over
+    exact_match // when guessed the answer
 };
 
 struct click_status
@@ -43,13 +43,13 @@ class engine
         running,
         done
     };
-
-  public:
+public:
     engine(const lock_level lock_level_setting_, const uint32_t player_science_skill_, const uint64_t seed_);
-    engine() : engine(lock_level::average, 50, 0) {};
+    engine()
+        : engine(lock_level::average, 50, 0) {};
 
-    core::state process_input(core::input input);
-  private:
+    state process_input(input input);
+private:
     highlight look_at(std::size_t i) const;
     click_status click_at(std::size_t i);
 

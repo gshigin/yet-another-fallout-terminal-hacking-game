@@ -3,7 +3,7 @@
 #include <optional>
 #include <string_view>
 
-namespace yafth::core
+namespace yafth
 {
 inline namespace types
 {
@@ -42,4 +42,4 @@ struct state
 
 } // namespace types
 
-} // namespace yafth::core
+} // namespace yafth

@@ -20,6 +20,9 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(${PROJECT_NAME} SHARED
   src/core/engine.cpp
+  src/app/game_controller.cpp
+  src/ui/cout_renderer.cpp
+  src/ui/cin_input_handler.cpp
 )
 add_library(${PROJECT_NAME}::engine ALIAS ${PROJECT_NAME})
 
