@@ -21,7 +21,7 @@ void game_controller::run()
 {
     state start_state = eng_ptr_->process_input(input{ input_type::other, {} });
     rend_ptr_->display(start_state);
-    for (auto i = 0; i < 10; ++i)
+    while(true)
     {
         input current_input = input_ptr_->get_input();
         state current_state = eng_ptr_->process_input(current_input);

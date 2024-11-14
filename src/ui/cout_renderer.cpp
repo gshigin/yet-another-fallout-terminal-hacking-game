@@ -5,8 +5,8 @@
 
 namespace yafth::ui
 {
-    void cout_renderer::display(const state & current_state)
+    void cout_renderer::display([[maybe_unused]]const state & current_state)
     {
-        std::cout << current_state.term_chars << '\n';
+        //std::cout << current_state.term_chars << '\n';
     }
 } // namespace yafth::ui
