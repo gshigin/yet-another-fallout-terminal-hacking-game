@@ -47,7 +47,7 @@ engine::engine(const lock_level lock_level_setting_, const uint32_t player_scien
           std::clamp<uint32_t>(player_science_skill_, player_science_skill_min, player_science_skill_max))
     , word_length(set_word_length())
     , word_count(set_word_count())
-    , answer(rng.next() % word_count)
+    , answer(0)
     , words_left(word_count)
 {
     generate_term_chars();
@@ -266,6 +266,7 @@ void engine::generate_words() noexcept
         std::copy(words_tmp[id].begin(), words_tmp[id].end(), iter);
         words[id] = std::distance(term_chars.begin(), iter);
     }
+    std::swap(words[0], words[rng.next() % word_count]);
 }
 
 highlight engine::look_at(std::size_t i) const

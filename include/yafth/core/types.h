@@ -8,6 +8,15 @@
 namespace yafth::inline types
 {
 
+enum class lock_level
+{
+    very_easy = 0,
+    easy = 1,
+    average = 2,
+    hard = 3,
+    very_hard = 4
+};
+
 enum class input_type
 {
     look,
@@ -45,7 +54,7 @@ enum class click_result
 
 struct word_match
 {
-    std::size_t of; 
+    std::size_t of;
     std::size_t from;
 };
 

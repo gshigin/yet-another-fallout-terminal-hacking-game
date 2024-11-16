@@ -7,7 +7,7 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(yafth
-  VERSION 0.2.0
+  VERSION 0.2.1
   LANGUAGES CXX
 )
 
@@ -41,7 +41,7 @@ if(NOT ftxui_POPULATED)
   add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-add_executable(app main.cpp)
+add_executable(app main.cpp src/ui/ftxui_shared_state.cpp)
 target_link_libraries(app PUBLIC yafth)
 
 target_link_libraries(app

@@ -13,7 +13,6 @@ int main()
     auto renderer = std::make_unique<yafth::ui::ftxui_renderer>(ftxui_shared);
     auto input_handler = std::make_unique<yafth::ui::ftxui_input_handler>(ftxui_shared);
 
-
     yafth::app::game_controller controller(std::move(engine), std::move(renderer), std::move(input_handler));
     controller.run();
 
