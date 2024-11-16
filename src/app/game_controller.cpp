@@ -19,7 +19,7 @@ game_controller::game_controller(std::unique_ptr<core::engine_interface> eng_ptr
 
 void game_controller::run()
 {
-    state start_state = eng_ptr_->process_input(input{ input_type::other, {} });
+    state start_state = eng_ptr_->process_input(input{ input_type::other, std::nullopt });
     rend_ptr_->initialize(start_state);
     while (true)
     {

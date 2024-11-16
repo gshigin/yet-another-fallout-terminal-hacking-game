@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <numeric>
 
-#include <iostream>
-
 namespace
 {
 // constexpr brackets lookup
@@ -439,7 +437,7 @@ state engine::process_input(input current_input)
     {
     case input_type::other: // do nothing
         return {
-            std::string_view{ term_chars.begin(), term_chars.end() },
+            std::string{ term_chars.begin(), term_chars.end() },
             attempts_left, {},
             {}
         };
@@ -449,14 +447,13 @@ state engine::process_input(input current_input)
         {
             auto hl = look_at(*internal_coord);
             return {
-                std::string_view{ term_chars.begin(), term_chars.end() },
-                attempts_left, hl, {}
+                std::string{ term_chars.begin(), term_chars.end() },
+                attempts_left, hl, std::nullopt
             };
         }
         return {
-            std::string_view{ term_chars.begin(), term_chars.end() },
-            attempts_left, {},
-            {}
+            std::string{ term_chars.begin(), term_chars.end() },
+            attempts_left, std::nullopt, {}
         };
         break;
     case input_type::click:
@@ -464,17 +461,20 @@ state engine::process_input(input current_input)
         {
             auto click_res = click_at(*internal_coord);
             return {
-                std::string_view{ term_chars.begin(), term_chars.end() },
-                attempts_left, {},
-                click_res
+                std::string{ term_chars.begin(), term_chars.end() },
+                attempts_left, std::nullopt, click_res
             };
         }
         return {
-            std::string_view{ term_chars.begin(), term_chars.end() },
-            attempts_left, {},
-            {}
+            std::string{ term_chars.begin(), term_chars.end() },
+            attempts_left, std::nullopt, std::nullopt
         };
         break;
     }
+    // should not happened
+    return {
+        std::string{ term_chars.begin(), term_chars.end() },
+        attempts_left, std::nullopt, std::nullopt
+    };
 }
 } // namespace yafth::core

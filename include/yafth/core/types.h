@@ -1,7 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <string_view>
+#include <string>
 
 #include <yafth/core/terminal_layout.h>
 
@@ -57,7 +57,7 @@ struct click_status
 
 struct state
 {
-    std::string_view term_chars; // all current mutable characters
+    std::string term_chars; // all current mutable characters
     std::size_t attempts_left;
     std::optional<highlight> highlighted;
     std::optional<click_status> click_res; // if click occured

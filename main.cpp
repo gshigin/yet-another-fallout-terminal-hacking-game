@@ -9,9 +9,10 @@
 int main()
 {
     auto ftxui_shared = std::make_shared<yafth::ui::ftxui_shared_state>();
-    auto input_handler = std::make_unique<yafth::ui::ftxui_input_handler>(ftxui_shared);
-    auto renderer = std::make_unique<yafth::ui::ftxui_renderer>(ftxui_shared);
     auto engine = std::make_unique<yafth::core::engine>();
+    auto renderer = std::make_unique<yafth::ui::ftxui_renderer>(ftxui_shared);
+    auto input_handler = std::make_unique<yafth::ui::ftxui_input_handler>(ftxui_shared);
+
 
     yafth::app::game_controller controller(std::move(engine), std::move(renderer), std::move(input_handler));
     controller.run();
