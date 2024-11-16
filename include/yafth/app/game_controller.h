@@ -12,12 +12,12 @@ namespace yafth::app
 class game_controller
 {
 public:
-    game_controller(std::unique_ptr<core::engine> eng_ptr, std::unique_ptr<core::renderer_interface> rend_ptr,
+    game_controller(std::unique_ptr<core::engine_interface> eng_ptr, std::unique_ptr<core::renderer_interface> rend_ptr,
                     std::unique_ptr<core::input_handler_interface> input_ptr);
 
     void run();
 private:
-    std::unique_ptr<core::engine> eng_ptr_;
+    std::unique_ptr<core::engine_interface> eng_ptr_;
     std::unique_ptr<core::renderer_interface> rend_ptr_;
     std::unique_ptr<core::input_handler_interface> input_ptr_;
 };

@@ -1,5 +1,6 @@
 #pragma once
 // yafth
+#include <yafth/core/engine_interface.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
@@ -20,7 +21,7 @@ enum class lock_level
     very_hard = 4
 };
 
-class engine
+class engine : public core::engine_interface
 {
     enum class engine_state
     {
@@ -32,8 +33,11 @@ public:
     engine()
         : engine(lock_level::average, 50, 0) {};
 
-    state process_input(input input);
+    state process_input(input input) override;
+
+    ~engine() override {};
 private:
+    std::optional<std::size_t> check_coords_(screen_coords coords) const;
     highlight look_at(std::size_t i) const;
     click_status click_at(std::size_t i);
 

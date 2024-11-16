@@ -407,18 +407,74 @@ click_status engine::click_at(std::size_t i)
     return { click_result::error, {} };
 }
 
+std::optional<std::size_t> engine::check_coords_(screen_coords coords) const
+{
+    auto m_x = coords.x;
+    auto m_y = coords.y;
+
+    if ((8 <= m_x && m_x <= 19) && (6 <= m_y && m_y <= 22)) // first window
+    {
+        m_x -= 8;
+        m_y -= 6;
+    } else if ((28 <= m_x && m_x <= 39) && (6 <= m_y && m_y <= 22)) // first window
+    {
+        m_x -= 28;
+        m_y -= 6;
+        m_y += 17;
+    } else
+    {
+        return std::nullopt;
+    }
+    return 12 * m_y + m_x;
+}
+
 state engine::process_input(input current_input)
 {
+    std::optional<std::size_t> internal_coord;
     if (current_input.coords.has_value())
     {
-        // std::cout << '\n' << current_input.coords->x << " " << current_input.coords->y << '\r';
-        // std::cout.flush();
+        internal_coord = check_coords_(*current_input.coords);
     }
-    // just a placeholder
-    return {
-        std::string_view{ term_chars.begin(), term_chars.end() },
-        attempts_left, {},
-        {}
-    };
+    switch (current_input.type)
+    {
+    case input_type::other: // do nothing
+        return {
+            std::string_view{ term_chars.begin(), term_chars.end() },
+            attempts_left, {},
+            {}
+        };
+        break;
+    case input_type::look:
+        if (internal_coord.has_value())
+        {
+            auto hl = look_at(*internal_coord);
+            return {
+                std::string_view{ term_chars.begin(), term_chars.end() },
+                attempts_left, hl, {}
+            };
+        }
+        return {
+            std::string_view{ term_chars.begin(), term_chars.end() },
+            attempts_left, {},
+            {}
+        };
+        break;
+    case input_type::click:
+        if (internal_coord.has_value())
+        {
+            auto click_res = click_at(*internal_coord);
+            return {
+                std::string_view{ term_chars.begin(), term_chars.end() },
+                attempts_left, {},
+                click_res
+            };
+        }
+        return {
+            std::string_view{ term_chars.begin(), term_chars.end() },
+            attempts_left, {},
+            {}
+        };
+        break;
+    }
 }
 } // namespace yafth::core
