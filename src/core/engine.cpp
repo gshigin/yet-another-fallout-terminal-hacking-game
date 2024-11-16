@@ -1,9 +1,12 @@
 // yafth
-#include "yafth/core/engine.h"
-#include "yafth/util/random.h"
+#include <yafth/core/engine.h>
+#include <yafth/core/types.h>
+#include <yafth/util/random.h>
 // stl
 #include <algorithm>
 #include <numeric>
+
+#include <iostream>
 
 namespace
 {
@@ -27,7 +30,7 @@ constexpr uint32_t max_word_count = 20;
 
 namespace yafth
 {
-class bad_engine_acces : public std::exception
+class bad_engine_access : public std::exception
 {
 public:
     [[nodiscard]] const char * what() const noexcept override
@@ -319,7 +322,7 @@ click_status engine::click_at(std::size_t i)
 {
     if (internal_state == engine_state::done)
     {
-        throw yafth::bad_engine_acces();
+        throw yafth::bad_engine_access();
     }
     i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
     const auto & [b, e] = look_at(i);
@@ -346,10 +349,14 @@ click_status engine::click_at(std::size_t i)
                 if (attempts_left == 0)
                 {
                     internal_state = engine_state::done;
-                    return { click_result::lockout_in_progress, match };
+                    return {
+                        click_result::lockout_in_progress, word_match{ match, word_length }
+                    };
                 }
 
-                return { click_result::entry_denied, match };
+                return {
+                    click_result::entry_denied, word_match{ match, word_length }
+                };
             }
         } else // bracket
         {
@@ -402,11 +409,16 @@ click_status engine::click_at(std::size_t i)
 
 state engine::process_input(input current_input)
 {
-    if (current_input.coords.has_value()) {}
+    if (current_input.coords.has_value())
+    {
+        // std::cout << '\n' << current_input.coords->x << " " << current_input.coords->y << '\r';
+        // std::cout.flush();
+    }
     // just a placeholder
     return {
         std::string_view{ term_chars.begin(), term_chars.end() },
-        attempts_left, {}
+        attempts_left, {},
+        {}
     };
 }
 } // namespace yafth::core

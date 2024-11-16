@@ -20,22 +20,6 @@ enum class lock_level
     very_hard = 4
 };
 
-enum class click_result
-{
-    error, // when clicking free symbol
-    dud_removed, // when clicked brackets, removes one wrong answer
-    allowance_replenished, // when clicked brackets, restores attempts
-    entry_denied, // when clicked wrong answer
-    lockout_in_progress, // lock after all attemps are over
-    exact_match // when guessed the answer
-};
-
-struct click_status
-{
-    click_result state;
-    std::optional<std::size_t> match;
-};
-
 class engine
 {
     enum class engine_state
