@@ -32,7 +32,7 @@ void ftxui_shared_state::initialize(const state & initial_state)
                     std::string attempts_text = std::to_string(attempts) + " ATTEMPT(S) LEFT : ";
 
                     ftxui::Elements attempt_elements;
-                    for (int i = 0; i < attempts; ++i)
+                    for (std::size_t i = 0; i < attempts; ++i)
                     {
                         attempt_elements.push_back(ftxui::text(" ") | ftxui::inverted);
                         attempt_elements.push_back(ftxui::text(" "));
@@ -92,10 +92,10 @@ void ftxui_shared_state::initialize(const state & initial_state)
                             std::string_view s = terminal_state_.term_chars;
                             std::optional<highlight> hl = terminal_state_.highlighted;
 
-                            for (int i = 0; i < terminal_layout::interaction_window::interactive_window_1::height; ++i)
+                            for (std::size_t i = 0; i < terminal_layout::interaction_window::interactive_window_1::height; ++i)
                             {
                                 std::vector<ftxui::Element> line;
-                                for (auto j = i * terminal_layout::interaction_window::interactive_window_1::width;
+                                for (std::size_t j = i * terminal_layout::interaction_window::interactive_window_1::width;
                                      j < (i + 1) * terminal_layout::interaction_window::interactive_window_1::width;
                                      ++j)
                                 {
@@ -123,11 +123,11 @@ void ftxui_shared_state::initialize(const state & initial_state)
                             std::string_view s = terminal_state_.term_chars;
                             std::optional<highlight> hl = terminal_state_.highlighted;
 
-                            for (int i = terminal_layout::interaction_window::interactive_window_2::height;
+                            for (std::size_t i = terminal_layout::interaction_window::interactive_window_2::height;
                                  i < 2 * terminal_layout::interaction_window::interactive_window_2::height; ++i)
                             {
                                 std::vector<ftxui::Element> line;
-                                for (auto j = i * terminal_layout::interaction_window::interactive_window_2::width;
+                                for (std::size_t j = i * terminal_layout::interaction_window::interactive_window_2::width;
                                      j < (i + 1) * terminal_layout::interaction_window::interactive_window_2::width;
                                      ++j)
                                 {
