@@ -1,7 +1,11 @@
+// Copyright 2024 Gleb Shigin. All rights reserved.
+// Use of this source code is governed by the MIT license that can be found in
+// the LICENSE file.
 #pragma once
 
 #include <yafth/core/types.h>
 #include <yafth/ui/ftxui_shared_state.h>
+#include <yafth/util/random.h>
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -17,6 +21,11 @@ public:
     ftxui_shared_state()
         : screen_(ftxui::ScreenInteractive::FitComponent())
     {}
+    ftxui_shared_state(std::uint64_t seed)
+        : ftxui_shared_state()
+    {
+        start_hex_ = random::seed(seed);
+    }
 
     void initialize(const state & initial_state);
     void display(const state & current_state);
