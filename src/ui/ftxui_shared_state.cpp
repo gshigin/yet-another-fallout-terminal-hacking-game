@@ -1,9 +1,9 @@
 // Copyright 2024 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
-#include <yafth/ui/ftxui_shared_state.h>
 #include <yafth/core/terminal_layout.h>
 #include <yafth/core/types.h>
+#include <yafth/ui/ftxui_shared_state.h>
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -92,10 +92,12 @@ void ftxui_shared_state::initialize(const state & initial_state)
                             std::string_view s = terminal_state_.term_chars;
                             std::optional<highlight> hl = terminal_state_.highlighted;
 
-                            for (std::size_t i = 0; i < terminal_layout::interaction_window::interactive_window_1::height; ++i)
+                            for (std::size_t i = 0;
+                                 i < terminal_layout::interaction_window::interactive_window_1::height; ++i)
                             {
                                 std::vector<ftxui::Element> line;
-                                for (std::size_t j = i * terminal_layout::interaction_window::interactive_window_1::width;
+                                for (std::size_t j =
+                                         i * terminal_layout::interaction_window::interactive_window_1::width;
                                      j < (i + 1) * terminal_layout::interaction_window::interactive_window_1::width;
                                      ++j)
                                 {
@@ -127,7 +129,8 @@ void ftxui_shared_state::initialize(const state & initial_state)
                                  i < 2 * terminal_layout::interaction_window::interactive_window_2::height; ++i)
                             {
                                 std::vector<ftxui::Element> line;
-                                for (std::size_t j = i * terminal_layout::interaction_window::interactive_window_2::width;
+                                for (std::size_t j =
+                                         i * terminal_layout::interaction_window::interactive_window_2::width;
                                      j < (i + 1) * terminal_layout::interaction_window::interactive_window_2::width;
                                      ++j)
                                 {
@@ -201,7 +204,6 @@ void ftxui_shared_state::initialize(const state & initial_state)
                                 input_type::look, screen_coords{ m_x, m_y }
                             };
                         }
-                        return true;
                     }
                     return false;
                 });
@@ -232,10 +234,7 @@ void ftxui_shared_state::display(const state & current_state)
     screen_.PostEvent(ftxui::Event::Custom);
 }
 
-input ftxui_shared_state::get_input()
-{
-    return input_;
-}
+input ftxui_shared_state::get_input() { return input_; }
 
 void ftxui_shared_state::update_internals_()
 {
