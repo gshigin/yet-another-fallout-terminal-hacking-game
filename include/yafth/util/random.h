@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace yafth::random
+namespace yafth::util
 {
 constexpr uint64_t seed(const uint64_t seed_)
 {
@@ -63,4 +63,4 @@ struct xoroshiro128
 
     constexpr xoroshiro128 fork() { return xoroshiro128{ next(), next() }; }
 };
-} // namespace yafth::random
+} // namespace yafth::util

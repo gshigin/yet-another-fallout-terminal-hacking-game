@@ -139,7 +139,7 @@ void argparser::check_defaults_(std::optional<std::uint32_t> & science_level, st
         // get current time
         seed = static_cast<std::uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
         // do magic
-        seed = random::seed(random::seed(random::seed(seed.value())));
+        seed = util::seed(util::seed(util::seed(seed.value())));
     }
 
     if (science_level.has_value())

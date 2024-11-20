@@ -3,7 +3,6 @@
 // the LICENSE file.
 #pragma once
 // yafth
-#include <yafth/core/engine_interface.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
@@ -15,7 +14,7 @@
 
 namespace yafth::core
 {
-class engine : public core::engine_interface
+class engine
 {
     enum class engine_state
     {
@@ -27,9 +26,7 @@ public:
     engine()
         : engine(lock_level::average, 50, 0) {};
 
-    state process_input(input input) override;
-
-    ~engine() override {};
+    state process_input(input input);
 private:
     std::optional<std::size_t> check_coords_(screen_coords coords) const;
     highlight look_at(std::size_t i) const;
@@ -40,7 +37,7 @@ private:
     void generate_term_chars() noexcept;
     void generate_words() noexcept;
 
-    random::xoroshiro128 rng;
+    util::xoroshiro128 rng;
 
     const lock_level lock_level_setting;
     const uint32_t player_science_skill;

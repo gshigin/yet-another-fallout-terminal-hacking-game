@@ -10,7 +10,6 @@
 
 namespace yafth::inline types
 {
-
 enum class lock_level
 {
     very_easy = 0,
@@ -73,6 +72,13 @@ struct state
     std::size_t attempts_left;
     std::optional<highlight> highlighted;
     std::optional<click_status> click_res; // if click occured
+};
+
+struct args
+{
+    std::uint32_t science_level;
+    lock_level lock;
+    std::uint64_t seed;
 };
 
 } // namespace yafth::inline types

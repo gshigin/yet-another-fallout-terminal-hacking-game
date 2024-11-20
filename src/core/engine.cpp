@@ -44,7 +44,7 @@ public:
 namespace yafth::core
 {
 engine::engine(const lock_level lock_level_setting_, const uint32_t player_science_skill_, const uint64_t seed_ = 0)
-    : rng(0, random::seed(seed_))
+    : rng(0, util::seed(seed_))
     , lock_level_setting(lock_level_setting_)
     , player_science_skill(
           std::clamp<uint32_t>(player_science_skill_, player_science_skill_min, player_science_skill_max))
@@ -439,7 +439,7 @@ state engine::process_input(input current_input)
     }
     switch (current_input.type)
     {
-    case input_type::other: // do nothing
+    case input_type::other: // do nothing, return current state
         return {
             std::string{ term_chars.begin(), term_chars.end() },
             attempts_left, {},

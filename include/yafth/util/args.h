@@ -10,13 +10,6 @@
 
 namespace yafth::util
 {
-struct args
-{
-    std::uint32_t science_level;
-    lock_level lock;
-    std::uint64_t seed;
-};
-
 class argparser
 {
 public:

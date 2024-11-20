@@ -7,7 +7,7 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(yafth
-  VERSION 0.2.2
+  VERSION 0.3.0
   LANGUAGES CXX
 )
 
@@ -20,7 +20,6 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(${PROJECT_NAME} SHARED
   src/core/engine.cpp
-  src/app/game_controller.cpp
 )
 add_library(${PROJECT_NAME}::engine ALIAS ${PROJECT_NAME})
 
@@ -41,7 +40,7 @@ if(NOT ftxui_POPULATED)
   add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-add_executable(app main.cpp src/ui/ftxui_shared_state.cpp src/util/args.cpp)
+add_executable(app src/app/main.cpp src/util/args.cpp src/app/application.cpp src/ui/user_interface.cpp)
 target_link_libraries(app PUBLIC yafth)
 
 target_link_libraries(app
