@@ -66,7 +66,7 @@ args argparser::parse(int argc, char *argv[])
 
 void argparser::show_help_()
 {
-    std::cout << "Usage: yafth [options]\n"
+    std::cout << "Usage: ./yafth [options]\n"
               << "Options:\n"
               << "  -h, --help              Show this help message\n"
               << "  -s, --science VALUE     Science level (0-100)\n"
