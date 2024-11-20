@@ -402,6 +402,7 @@ click_status engine::click_at(std::size_t i)
     return {click_result::error, {}};
 }
 
+// I'm lazy to change all constants to term_layout ones
 std::optional<std::size_t> engine::check_coords_(screen_coords coords) const
 {
     auto m_x = coords.x;
@@ -412,7 +413,7 @@ std::optional<std::size_t> engine::check_coords_(screen_coords coords) const
         m_x -= 8;
         m_y -= 6;
     }
-    else if ((28 <= m_x && m_x <= 39) && (6 <= m_y && m_y <= 22)) // first window
+    else if ((28 <= m_x && m_x <= 39) && (6 <= m_y && m_y <= 22)) // second window
     {
         m_x -= 28;
         m_y -= 6;

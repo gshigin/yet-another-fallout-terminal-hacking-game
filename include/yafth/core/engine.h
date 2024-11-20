@@ -3,6 +3,7 @@
 // the LICENSE file.
 #pragma once
 // yafth
+#include <yafth/core/terminal_layout.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
@@ -11,6 +12,14 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+
+namespace
+{
+constexpr size_t visible_chars_num = terminal_layout::interaction_window::interactive_window_1::height *
+                                         terminal_layout::interaction_window::interactive_window_1::width +
+                                     terminal_layout::interaction_window::interactive_window_2::height *
+                                         terminal_layout::interaction_window::interactive_window_2::width;
+}
 
 namespace yafth::core
 {
@@ -50,9 +59,9 @@ class engine
     std::size_t words_left;
 
     std::array<std::size_t, 20> words;
-    std::array<char, 408> term_chars;
+    std::array<char, visible_chars_num> term_chars;
 
-    std::bitset<408> used_bracket;
+    std::bitset<visible_chars_num> used_bracket;
 
     engine_state internal_state = engine_state::running;
 };

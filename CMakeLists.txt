@@ -55,6 +55,17 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE ftxui::component
 )
 
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy" DOC "Path to clang-tidy executable" )
+if (YAFTH_CLANG_TIDY)
+  if (NOT CLANG_TIDY_EXE)
+    message(FATAL_ERROR "clang-tidy requested but executable not found")
+  endif()
+
+set_target_properties(${PROJECT_NAME}-lib
+  PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}"
+)
+endif()
+
 if(MSVC)
   target_compile_options(yafth PRIVATE /W4 /WX)
 else()
