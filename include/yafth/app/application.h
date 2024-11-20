@@ -13,11 +13,12 @@ namespace yafth::app
 {
 class application
 {
-public:
+  public:
     application(yafth::args args);
 
     void run();
-private:
+
+  private:
     ftxui::ScreenInteractive screen_;
     yafth::core::engine engine_;
     yafth::ui::user_interface ui;

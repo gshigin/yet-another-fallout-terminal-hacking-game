@@ -14,7 +14,7 @@
 namespace yafth::util
 {
 
-args argparser::parse(int argc, char * argv[])
+args argparser::parse(int argc, char *argv[])
 {
     std::optional<std::uint32_t> science_level;
     std::optional<lock_level> lock;
@@ -28,28 +28,32 @@ args argparser::parse(int argc, char * argv[])
         {
             show_help_();
             exit(0);
-        } else if (arg == "-s" || arg == "--science")
+        }
+        else if (arg == "-s" || arg == "--science")
         {
             if (science_level.has_value())
             {
                 throw std::invalid_argument("--science specified multiple times.");
             }
             science_level = handle_science_(get_next_arg_(argc, argv, ++i, "--science"));
-        } else if (arg == "-l" || arg == "--lock")
+        }
+        else if (arg == "-l" || arg == "--lock")
         {
             if (lock.has_value())
             {
                 throw std::invalid_argument("--lock specified multiple times.");
             }
             lock = handle_lock_(get_next_arg_(argc, argv, ++i, "--lock"));
-        } else if (arg == "--seed")
+        }
+        else if (arg == "--seed")
         {
             if (seed.has_value())
             {
                 throw std::invalid_argument("--seed specified multiple times.");
             }
             seed = handle_seed_(get_next_arg_(argc, argv, ++i, "--seed"));
-        } else
+        }
+        else
         {
             throw std::invalid_argument("Unknown argument: " + arg);
         }
@@ -57,7 +61,7 @@ args argparser::parse(int argc, char * argv[])
 
     check_defaults_(science_level, lock, seed);
 
-    return { science_level.value(), lock.value(), seed.value() };
+    return {science_level.value(), lock.value(), seed.value()};
 }
 
 void argparser::show_help_()
@@ -70,7 +74,7 @@ void argparser::show_help_()
               << "  --seed VALUE            Optional seed for random generator\n";
 }
 
-std::string argparser::get_next_arg_(int argc, char * argv[], int current_index, const std::string & arg_name)
+std::string argparser::get_next_arg_(int argc, char *argv[], int current_index, const std::string &arg_name)
 {
     if (current_index >= argc)
     {
@@ -79,7 +83,7 @@ std::string argparser::get_next_arg_(int argc, char * argv[], int current_index,
     return argv[current_index];
 }
 
-std::uint32_t argparser::handle_science_(const std::string & value)
+std::uint32_t argparser::handle_science_(const std::string &value)
 {
     int level = 0;
     try
@@ -89,27 +93,22 @@ std::uint32_t argparser::handle_science_(const std::string & value)
         {
             throw std::invalid_argument("");
         }
-    } catch (...)
+    }
+    catch (...)
     {
         throw std::invalid_argument("--science must be a number between 0 and 100.");
     }
     return level;
 }
 
-lock_level argparser::handle_lock_(const std::string & value)
+lock_level argparser::handle_lock_(const std::string &value)
 {
     static const std::unordered_map<std::string, lock_level> valid_levels = {
-        { "0",         lock_level::very_easy },
-        { "1",         lock_level::easy      },
-        { "2",         lock_level::average   },
-        { "3",         lock_level::hard      },
-        { "4",         lock_level::very_hard },
-        { "very_easy", lock_level::very_easy },
-        { "easy",      lock_level::easy      },
-        { "average",   lock_level::average   },
-        { "hard",      lock_level::hard      },
-        { "very_hard", lock_level::very_hard }
-    };
+        {"0", lock_level::very_easy}, {"1", lock_level::easy},
+        {"2", lock_level::average},   {"3", lock_level::hard},
+        {"4", lock_level::very_hard}, {"very_easy", lock_level::very_easy},
+        {"easy", lock_level::easy},   {"average", lock_level::average},
+        {"hard", lock_level::hard},   {"very_hard", lock_level::very_hard}};
     if (valid_levels.find(value) == valid_levels.end())
     {
         throw std::invalid_argument(
@@ -118,21 +117,22 @@ lock_level argparser::handle_lock_(const std::string & value)
     return valid_levels.find(value)->second;
 }
 
-std::uint64_t argparser::handle_seed_(const std::string & value)
+std::uint64_t argparser::handle_seed_(const std::string &value)
 {
     std::uint64_t seed;
     try
     {
         seed = std::stoull(value);
-    } catch (...)
+    }
+    catch (...)
     {
         throw std::invalid_argument("--seed must be convertible to unsigned long long.");
     }
     return seed;
 }
 
-void argparser::check_defaults_(std::optional<std::uint32_t> & science_level, std::optional<lock_level> & lock,
-                                std::optional<std::uint64_t> & seed)
+void argparser::check_defaults_(std::optional<std::uint32_t> &science_level, std::optional<lock_level> &lock,
+                                std::optional<std::uint64_t> &seed)
 {
     if (!seed.has_value())
     {
@@ -153,34 +153,40 @@ void argparser::check_defaults_(std::optional<std::uint32_t> & science_level, st
                 throw std::invalid_argument("A Science skill of " + std::to_string(science_skill_required) +
                                             " is required to hack this terminal. >:(");
             }
-        } else
+        }
+        else
         {
             if (*science_level < 15)
             {
                 throw std::invalid_argument("Not enought Science skill for even Very Easy terminal. :(");
-            } else
+            }
+            else
             {
                 if (*science_level < 25)
                 {
                     lock = lock_level::very_easy;
-                } else
+                }
+                else
                 {
                     lock = static_cast<lock_level>(100 / (*science_level));
                 }
             }
         }
-    } else
+    }
+    else
     {
         if (lock.has_value())
         {
             if (*lock == lock_level::very_easy)
             {
                 science_level = 15;
-            } else
+            }
+            else
             {
                 science_level = 25 * static_cast<std::uint32_t>(*lock);
             }
-        } else
+        }
+        else
         {
             science_level = 50;
             lock = lock_level::average;

@@ -8,15 +8,13 @@
 namespace yafth::app
 {
 application::application(yafth::args args)
-    : screen_(ftxui::ScreenInteractive::FitComponent())
-    , engine_(args.lock, args.science_level, args.seed)
-    , ui(
-          [this](input inp)
-          {
+    : screen_(ftxui::ScreenInteractive::FitComponent()), engine_(args.lock, args.science_level, args.seed),
+      ui(
+          [this](input inp) {
               if (game_over)
               {
                   screen_.ExitLoopClosure()();
-                  return engine_.process_input(input{ input_type::other, {} });
+                  return engine_.process_input(input{input_type::other, {}});
               }
               state current_state = engine_.process_input(inp);
               if (current_state.click_res.has_value() &&
@@ -30,7 +28,11 @@ application::application(yafth::args args)
               return current_state;
           },
           util::seed(args.seed))
-{}
+{
+}
 
-void application::run() { screen_.Loop(ui.create()); }
+void application::run()
+{
+    screen_.Loop(ui.create());
+}
 } // namespace yafth::app

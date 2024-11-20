@@ -18,11 +18,13 @@ namespace yafth::ui
 class user_interface
 {
     using fcallback_t = std::function<yafth::state(yafth::input)>;
-public:
-    user_interface(const fcallback_t & callback, std::uint64_t seed);
+
+  public:
+    user_interface(const fcallback_t &callback, std::uint64_t seed);
 
     ftxui::Component create();
-private:
+
+  private:
     void update_internals_();
 
     fcallback_t callback_;

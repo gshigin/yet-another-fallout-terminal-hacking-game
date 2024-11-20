@@ -21,13 +21,14 @@ class engine
         running,
         done
     };
-public:
+
+  public:
     engine(const lock_level lock_level_setting_, const uint32_t player_science_skill_, const uint64_t seed_);
-    engine()
-        : engine(lock_level::average, 50, 0) {};
+    engine() : engine(lock_level::average, 50, 0) {};
 
     state process_input(input input);
-private:
+
+  private:
     std::optional<std::size_t> check_coords_(screen_coords coords) const;
     highlight look_at(std::size_t i) const;
     click_status click_at(std::size_t i);

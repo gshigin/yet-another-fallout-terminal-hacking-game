@@ -8,13 +8,14 @@
 
 #include <memory>
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
     yafth::args arguments;
     try
     {
         arguments = yafth::util::argparser::parse(argc, argv);
-    } catch (const std::exception & ex)
+    }
+    catch (const std::exception &ex)
     {
         std::cerr << "Error: " << ex.what() << "\n";
         return 1;
