@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace yafth::random
+namespace yafth::util
 {
 constexpr uint64_t seed(const uint64_t seed_)
 {
@@ -33,16 +33,19 @@ constexpr uint64_t seed()
 
 struct xoroshiro128
 {
-    std::uint64_t state[2]{ 1, 1 };
+    std::uint64_t state[2]{1, 1};
 
     xoroshiro128() = default;
 
-    constexpr xoroshiro128(uint64_t s0, uint64_t s1)
-        : state{ s0, s1 }
-    {}
+    constexpr xoroshiro128(uint64_t s0, uint64_t s1) : state{s0, s1}
+    {
+    }
 
     // or c++20 std::rotl
-    constexpr static inline uint64_t rotl(const uint64_t x, int k) { return (x << k) | (x >> (64 - k)); }
+    constexpr static inline uint64_t rotl(const uint64_t x, int k)
+    {
+        return (x << k) | (x >> (64 - k));
+    }
 
     constexpr std::uint64_t next() noexcept
     {
@@ -57,10 +60,19 @@ struct xoroshiro128
         return result >> 4;
     }
 
-    template<typename T> constexpr T next_t() noexcept { return static_cast<T>(next()); }
+    template <typename T> constexpr T next_t() noexcept
+    {
+        return static_cast<T>(next());
+    }
 
-    constexpr std::uint64_t operator()() noexcept { return next(); }
+    constexpr std::uint64_t operator()() noexcept
+    {
+        return next();
+    }
 
-    constexpr xoroshiro128 fork() { return xoroshiro128{ next(), next() }; }
+    constexpr xoroshiro128 fork()
+    {
+        return xoroshiro128{next(), next()};
+    }
 };
-} // namespace yafth::random
+} // namespace yafth::util
