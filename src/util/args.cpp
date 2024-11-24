@@ -69,7 +69,7 @@ void argparser::show_help_()
     std::cout << "Usage: ./yafth [options]\n"
               << "Options:\n"
               << "  -h, --help              Show this help message\n"
-              << "  -s, --science VALUE     Science level (0-100)\n"
+              << "  -s, --science VALUE     Science skill (0-100)\n"
               << "  -l, --lock VALUE        Lock level (0-4 or very_easy, easy, average, hard, very_hard)\n"
               << "  --seed VALUE            Optional seed for random generator\n";
 }
