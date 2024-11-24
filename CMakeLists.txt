@@ -47,12 +47,9 @@ target_link_libraries(${PROJECT_NAME}-lib
   PRIVATE ftxui::dom
   PRIVATE ftxui::component
 )
-# main has dependensies from ftxui -- need to be fixed
+
 target_link_libraries(${PROJECT_NAME}
   PRIVATE ${PROJECT_NAME}-lib
-  PRIVATE ftxui::screen
-  PRIVATE ftxui::dom
-  PRIVATE ftxui::component
 )
 
 find_program(CLANG_TIDY_EXE NAMES "clang-tidy" DOC "Path to clang-tidy executable" )
