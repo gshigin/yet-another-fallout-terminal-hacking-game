@@ -1,4 +1,4 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
@@ -42,11 +42,11 @@ class bad_engine_access : public std::exception
 
 namespace yafth::core
 {
-engine::engine(const lock_level lock_level_setting_, const uint32_t player_science_skill_, const uint64_t seed_ = 0)
-    : rng(0, util::seed(seed_)), lock_level_setting(lock_level_setting_),
-      player_science_skill(
+engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0)
+    : rng(0, util::seed(seed)), lock_level_setting_(lock_level_setting),
+      player_science_skill_(
           std::clamp<uint32_t>(player_science_skill_, player_science_skill_min, player_science_skill_max)),
-      word_length(set_word_length()), word_count(set_word_count()), answer(0), words_left(word_count)
+      word_length_(set_word_length()), word_count_(set_word_count()), answer_(0), words_left_(word_count_)
 {
     generate_term_chars();
     generate_words();
@@ -55,7 +55,7 @@ engine::engine(const lock_level lock_level_setting_, const uint32_t player_scien
 inline std::size_t engine::set_word_length() noexcept
 {
     return std::min<std::size_t>(max_word_length,
-                                 4 + 2 * static_cast<std::size_t>(lock_level_setting) + (rng.next() & 1));
+                                 4 + 2 * static_cast<std::size_t>(lock_level_setting_) + (rng.next() & 1));
 }
 
 // from https://geckwiki.com/index.php?title=Hacking_Word_Count
@@ -63,8 +63,8 @@ std::size_t engine::set_word_count() noexcept
 {
     constexpr std::size_t hacking_min_words = 5;
     constexpr std::size_t hacking_max_words = 20;
-    const std::size_t lock_level = static_cast<std::size_t>(lock_level_setting) * 25;
-    const std::size_t science_offset = player_science_skill - lock_level;
+    const std::size_t lock_level = static_cast<std::size_t>(lock_level_setting_) * 25;
+    const std::size_t science_offset = player_science_skill_ - lock_level;
     const std::size_t lock_offset = 100 - lock_level;
 
     const double sol_coef = lock_offset == 0
@@ -82,7 +82,7 @@ void engine::generate_term_chars() noexcept
 {
     constexpr std::array<char, 24> placeholders = {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_',
                                                    '%', '$', '|', '@', '{', '}', '[', ']',  '(', ')', '<', '>'};
-    for (auto &c : term_chars)
+    for (auto &c : term_chars_)
     {
         c = placeholders[rng.next() % placeholders.size()];
     }
@@ -92,7 +92,7 @@ void engine::generate_words() noexcept
 {
     constexpr size_t word_array_size = 100;
     std::array<std::string, word_array_size> word_array{};
-    if (word_length == 4)
+    if (word_length_ == 4)
     {
         word_array = {"THAT", "WITH", "FROM", "WERE", "THIS", "THEY", "HAVE", "SAID", "WHAT", "WHEN", "BEEN", "THEM",
                       "INTO", "MORE", "ONLY", "WILL", "THEN", "SOME", "TIME", "SUCH", "VERY", "OVER", "YOUR", "THAN",
@@ -104,7 +104,7 @@ void engine::generate_words() noexcept
                       "WORK", "LESS", "WIFE", "DOES", "MIND", "BODY", "OPEN", "WANT", "SENT", "HALF", "YEAR", "PAIN",
                       "WORD", "HOME", "ANNA", "FIND"};
     }
-    if (word_length == 5)
+    if (word_length_ == 5)
     {
         word_array = {"WHICH", "THERE", "THEIR", "WOULD", "COULD", "AFTER", "OTHER", "ABOUT", "THESE", "THOSE",
                       "FIRST", "WHERE", "UNDER", "STILL", "BEING", "AGAIN", "BEGAN", "GREAT", "ASKED", "WHILE",
@@ -117,7 +117,7 @@ void engine::generate_words() noexcept
                       "PARTY", "PARTS", "TABLE", "BORIS", "ENEMY", "CRIED", "LIGHT", "UNION", "EARLY", "PETYA",
                       "BONES", "SINCE", "HEART", "FORMS", "SPEAK", "MEANS", "MOVED", "FORCE", "THIRD", "SHORT"};
     }
-    if (word_length == 6)
+    if (word_length_ == 6)
     {
         word_array = {
             "PIERRE", "PRINCE", "BEFORE", "SHOULD", "ANDREW", "FRENCH", "LITTLE", "STATES", "PEOPLE", "ROSTOV",
@@ -131,7 +131,7 @@ void engine::generate_words() noexcept
             "EVENTS", "PERIOD", "GERMAN", "RUSSIA", "SPREAD", "MIDDLE", "REASON", "RETURN", "MERELY", "SILENT",
             "EFFECT", "GIVING", "WINDOW", "WOUNDS", "PERSON", "DINNER", "DOCTOR", "PLACED", "TRYING", "STREET"};
     }
-    if (word_length == 7)
+    if (word_length_ == 7)
     {
         word_array = {"NATASHA", "HIMSELF", "WITHOUT", "THOUGHT", "ANOTHER", "GENERAL", "THROUGH", "AGAINST", "BETWEEN",
                       "NOTHING", "EMPEROR", "BECAUSE", "DISEASE", "KUTUZOV", "USUALLY", "LOOKING", "ALREADY", "CHAPTER",
@@ -146,7 +146,7 @@ void engine::generate_words() noexcept
                       "SMILING", "ROSTOVS", "SOMEONE", "VILLAGE", "LESIONS", "SPECIAL", "MEMBERS", "FINALLY", "FRIENDS",
                       "VARIOUS"};
     }
-    if (word_length == 8)
+    if (word_length_ == 8)
     {
         word_array = {"PRINCESS", "AMERICAN", "NICHOLAS", "NAPOLEON", "COUNTESS", "SUDDENLY", "CONGRESS", "POSITION",
                       "SOLDIERS", "ANYTHING", "QUESTION", "MOVEMENT", "POSSIBLE", "DOLOKHOV", "FOLLOWED", "BUSINESS",
@@ -162,7 +162,7 @@ void engine::generate_words() noexcept
                       "OCCURRED", "ECONOMIC", "COMMERCE", "ELECTION", "DISTANCE", "GENERALS", "HANDSOME", "OCCUPIED",
                       "POLITICS", "SHOULDER", "BACTERIA", "INCREASE"};
     }
-    if (word_length == 9)
+    if (word_length_ == 9)
     {
         word_array = {
             "SOMETHING", "TREATMENT", "SOMETIMES", "EVIDENTLY", "PRESIDENT", "INFECTION", "CONDITION", "NECESSARY",
@@ -179,7 +179,7 @@ void engine::generate_words() noexcept
             "OURSELVES", "PROMINENT", "PARALYSIS", "SEPARATED", "HURRIEDLY", "AFFECTION", "COMPANIES", "SENSATION",
             "ABANDONED", "ADDRESSED", "CAREFULLY", "ARTHRITIS"};
     }
-    if (word_length == 10)
+    if (word_length_ == 10)
     {
         word_array = {"GOVERNMENT", "EVERYTHING", "UNDERSTAND", "ESPECIALLY", "EXPRESSION", "THEMSELVES", "IMPOSSIBLE",
                       "PETERSBURG", "CONDITIONS", "UNDERSTOOD", "FREQUENTLY", "REVOLUTION", "ASSOCIATED", "REPUBLICAN",
@@ -197,7 +197,7 @@ void engine::generate_words() noexcept
                       "CONFIDENCE", "PROTECTIVE", "ULCERATION", "UNPLEASANT", "ASSISTANCE", "HYPERAEMIA", "OCCUPATION",
                       "PERMISSION", "PROVISIONS"};
     }
-    if (word_length == 11)
+    if (word_length_ == 11)
     {
         word_array = {
             "TUBERCULOUS", "IMMEDIATELY", "HAEMORRHAGE", "SUPPURATION", "REPUBLICANS", "MIKHAYLOVNA", "ESTABLISHED",
@@ -216,7 +216,7 @@ void engine::generate_words() noexcept
             "CONFEDERACY", "CONNECTIONS", "UNNECESSARY", "COMPLICATED", "CONVENTIONS", "PHILIPPINES", "CONSEQUENCE",
             "CONSTITUTES", "CONTRACTURE"};
     }
-    if (word_length == 12)
+    if (word_length_ == 12)
     {
         word_array = {"CONSTITUTION", "ILLUSTRATION", "CONVERSATION", "PARTICULARLY", "CONSIDERABLE", "INDEPENDENCE",
                       "MADEMOISELLE", "SUBCUTANEOUS", "PENNSYLVANIA", "INFLAMMATION", "OCCASIONALLY", "SIGNIFICANCE",
@@ -246,57 +246,57 @@ void engine::generate_words() noexcept
         if (std::find(words_tmp.begin(), words_tmp.end(), next_word) == words_tmp.end())
         {
             std::copy(next_word.begin(), next_word.end(), it);
-            words_tmp[i] = std::string_view{it, std::next(it, word_length)};
-            std::advance(it, word_length);
+            words_tmp[i] = std::string_view{it, std::next(it, word_length_)};
+            std::advance(it, word_length_);
             ++i;
         }
-    } while (i < word_count);
+    } while (i < word_count_);
 
-    const std::size_t space_per_word = term_chars.size() / word_count;
-    const std::size_t possible_start = space_per_word - word_length;
-    for (std::size_t id = 0; id < word_count; ++id)
+    const std::size_t space_per_word = term_chars_.size() / word_count_;
+    const std::size_t possible_start = space_per_word - word_length_;
+    for (std::size_t id = 0; id < word_count_; ++id)
     {
-        auto iter = term_chars.begin() + id * space_per_word + rng.next() % possible_start;
+        auto iter = term_chars_.begin() + id * space_per_word + rng.next() % possible_start;
         std::copy(words_tmp[id].begin(), words_tmp[id].end(), iter);
-        words[id] = std::distance(term_chars.begin(), iter);
+        words_[id] = std::distance(term_chars_.begin(), iter);
     }
-    std::swap(words[0], words[rng.next() % word_count]);
+    std::swap(words_[0], words_[rng.next() % word_count_]);
 }
 
 highlight engine::look_at(std::size_t i) const
 {
-    i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
-    if (::is_char(term_chars[i])) // case of word
+    i = std::clamp<std::size_t>(i, 0, term_chars_.size() - 1);
+    if (::is_char(term_chars_[i])) // case of word
     {
         auto l = i;
         auto r = l;
-        while (l != 0 && ::is_char(term_chars[l]))
+        while (l != 0 && ::is_char(term_chars_[l]))
         {
             --l;
         }
-        if (!::is_char(term_chars[l]))
+        if (!::is_char(term_chars_[l]))
         {
             ++l;
         }
-        while (r != term_chars.size() && ::is_char(term_chars[r]))
+        while (r != term_chars_.size() && ::is_char(term_chars_[r]))
         {
             ++r;
         }
         return {l, r};
     }
-    else if (::is_open_br(term_chars[i]) && !used_bracket.test(i)) // case of brackets
+    else if (::is_open_br(term_chars_[i]) && !used_bracket_.test(i)) // case of brackets
     {
         const std::size_t j = ((i / 12) + 1) * 12;
-        const char c = ::lookup(term_chars[i]);
+        const char c = ::lookup(term_chars_[i]);
         auto e = j;
         for (auto it = i; it != e; ++it)
         {
-            if (::is_char(term_chars[it]))
+            if (::is_char(term_chars_[it]))
             {
                 e = i;
                 break;
             }
-            if (term_chars[it] == c)
+            if (term_chars_[it] == c)
             {
                 e = it;
                 break;
@@ -314,65 +314,65 @@ highlight engine::look_at(std::size_t i) const
 // this code is shit
 click_status engine::click_at(std::size_t i)
 {
-    if (internal_state == engine_state::done)
+    if (internal_state_ == engine_state::done)
     {
         throw yafth::bad_engine_access();
     }
-    i = std::clamp<std::size_t>(i, 0, term_chars.size() - 1);
+    i = std::clamp<std::size_t>(i, 0, term_chars_.size() - 1);
     const auto &[b, e] = look_at(i);
-    std::string_view substr{term_chars.begin() + b, term_chars.begin() + e};
-    const std::string_view term{term_chars.begin(), term_chars.end()};
+    std::string_view substr{term_chars_.begin() + b, term_chars_.begin() + e};
+    const std::string_view term{term_chars_.begin(), term_chars_.end()};
     if (e - b != 1)
     {
         if (::is_char(term[b])) // word
         {
-            if (term.substr(words[answer], word_length) == substr)
+            if (term.substr(words_[answer_], word_length_) == substr)
             {
-                internal_state = engine_state::done;
+                internal_state_ = engine_state::done;
                 return {click_result::exact_match, {}};
             }
             else // it's not an answer
             {
-                --attempts_left;
-                const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words[answer],
+                --attempts_left_;
+                const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words_[answer_],
                                                              0, std::plus<>(), std::equal_to<>());
                 const std::size_t offset = term.find(substr);
-                std::fill(term_chars.begin() + offset, term_chars.begin() + offset + word_length, '.');
-                std::iter_swap(words.begin() + words_left - 1, std::find(words.begin(), words.end(), offset));
-                --words_left;
+                std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
+                std::iter_swap(words_.begin() + words_left_ - 1, std::find(words_.begin(), words_.end(), offset));
+                --words_left_;
 
-                if (attempts_left == 0)
+                if (attempts_left_ == 0)
                 {
-                    internal_state = engine_state::done;
-                    return {click_result::lockout_in_progress, word_match{match, word_length}};
+                    internal_state_ = engine_state::done;
+                    return {click_result::lockout_in_progress, word_match{match, word_length_}};
                 }
 
-                return {click_result::entry_denied, word_match{match, word_length}};
+                return {click_result::entry_denied, word_match{match, word_length_}};
             }
         }
         else // bracket
         {
-            const std::size_t dist = std::distance<const char *>(term_chars.data(),
+            const std::size_t dist = std::distance<const char *>(term_chars_.data(),
                                                                  substr.data()); // seem like a problem, but works fine
-            if (!used_bracket.test(dist))
+            if (!used_bracket_.test(dist))
             {
-                used_bracket.set(dist);
+                used_bracket_.set(dist);
 
-                if (words_left == 1)
+                if (words_left_ == 1)
                 {
-                    attempts_left = 4;
+                    attempts_left_ = 4;
                     return {click_result::allowance_replenished, {}};
                 }
                 else // words_left != 1
                 {
-                    if (attempts_left == 4)
+                    if (attempts_left_ == 4)
                     {
                         // remove dud
-                        std::size_t dud_id = 1 + (rng.next() % (words_left - 1));
-                        const std::size_t offset = words[dud_id];
-                        std::fill(term_chars.begin() + offset, term_chars.begin() + offset + word_length, '.');
-                        std::iter_swap(words.begin() + words_left - 1, words.begin() + dud_id);
-                        --words_left;
+                        std::size_t dud_id = 1 + (rng.next() % (words_left_ - 1));
+                        const std::size_t offset = words_[dud_id];
+                        std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
+                        std::iter_swap(words_.begin() + words_left_ - 1, words_.begin() + dud_id);
+                        --words_left_;
 
                         return {click_result::dud_removed, {}};
                     }
@@ -381,17 +381,17 @@ click_status engine::click_at(std::size_t i)
                         if ((rng.next() & 1) == 1)
                         {
                             // remove dud
-                            std::size_t dud_id = 1 + (rng.next() % (words_left - 1));
-                            const std::size_t offset = words[dud_id];
-                            std::fill(term_chars.begin() + offset, term_chars.begin() + offset + word_length, '.');
-                            std::iter_swap(words.begin() + words_left - 1, words.begin() + dud_id);
-                            --words_left;
+                            std::size_t dud_id = 1 + (rng.next() % (words_left_ - 1));
+                            const std::size_t offset = words_[dud_id];
+                            std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
+                            std::iter_swap(words_.begin() + words_left_ - 1, words_.begin() + dud_id);
+                            --words_left_;
 
                             return {click_result::dud_removed, {}};
                         }
                         else
                         {
-                            attempts_left = 4;
+                            attempts_left_ = 4;
                             return {click_result::allowance_replenished, {}};
                         }
                     }
@@ -403,7 +403,7 @@ click_status engine::click_at(std::size_t i)
 }
 
 // I'm lazy to change all constants to term_layout ones
-std::optional<std::size_t> engine::check_coords_(screen_coords coords) const
+std::optional<std::size_t> engine::check_coords(screen_coords coords) const
 {
     auto m_x = coords.x;
     auto m_y = coords.y;
@@ -431,31 +431,31 @@ state engine::process_input(input current_input)
     std::optional<std::size_t> internal_coord;
     if (current_input.coords.has_value())
     {
-        internal_coord = check_coords_(*current_input.coords);
+        internal_coord = check_coords(*current_input.coords);
     }
     switch (current_input.type)
     {
     case input_type::other: // do nothing, return current state
-        return {std::string{term_chars.begin(), term_chars.end()}, attempts_left, {}, {}};
+        return {std::string{term_chars_.begin(), term_chars_.end()}, attempts_left_, {}, {}};
         break;
     case input_type::look:
         if (internal_coord.has_value())
         {
             auto hl = look_at(*internal_coord);
-            return {std::string{term_chars.begin(), term_chars.end()}, attempts_left, hl, std::nullopt};
+            return {std::string{term_chars_.begin(), term_chars_.end()}, attempts_left_, hl, std::nullopt};
         }
-        return {std::string{term_chars.begin(), term_chars.end()}, attempts_left, std::nullopt, {}};
+        return {std::string{term_chars_.begin(), term_chars_.end()}, attempts_left_, std::nullopt, {}};
         break;
     case input_type::click:
         if (internal_coord.has_value())
         {
             auto click_res = click_at(*internal_coord);
-            return {std::string{term_chars.begin(), term_chars.end()}, attempts_left, std::nullopt, click_res};
+            return {std::string{term_chars_.begin(), term_chars_.end()}, attempts_left_, std::nullopt, click_res};
         }
-        return {std::string{term_chars.begin(), term_chars.end()}, attempts_left, std::nullopt, std::nullopt};
+        return {std::string{term_chars_.begin(), term_chars_.end()}, attempts_left_, std::nullopt, std::nullopt};
         break;
     }
-    // should not happened
-    return {std::string{term_chars.begin(), term_chars.end()}, attempts_left, std::nullopt, std::nullopt};
+    // should not happen
+    return {std::string{term_chars_.begin(), term_chars_.end()}, attempts_left_, std::nullopt, std::nullopt};
 }
 } // namespace yafth::core
