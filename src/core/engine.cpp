@@ -33,7 +33,7 @@ namespace yafth
 class bad_engine_access : public std::exception
 {
   public:
-    [[nodiscard]] const char *what() const noexcept override
+    [[nodiscard]] auto what() const noexcept -> const char * override
     {
         return "Trying to call yafth::engine when it's in Done state";
     }
@@ -43,7 +43,7 @@ class bad_engine_access : public std::exception
 namespace yafth::core
 {
 engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0)
-    : rng(0, util::seed(seed)), lock_level_setting_(lock_level_setting),
+    : rng{0, util::seed(seed)}, lock_level_setting_(lock_level_setting),
       player_science_skill_(
           std::clamp<uint32_t>(player_science_skill_, player_science_skill_min, player_science_skill_max)),
       word_length_(set_word_length()), word_count_(set_word_count()), answer_(0), words_left_(word_count_)

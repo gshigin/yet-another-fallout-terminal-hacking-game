@@ -34,25 +34,25 @@ class engine
     engine(lock_level lock_level_setting, uint32_t player_science_skill, uint64_t seed);
     engine() : engine(lock_level::average, 50, 0) {};
 
-    state process_input(input input);
+    auto process_input(input input) -> state;
 
   private:
-    std::optional<std::size_t> check_coords(screen_coords coords) const;
-    highlight look_at(std::size_t i) const;
-    click_status click_at(std::size_t i);
+    [[nodiscard]] auto check_coords(screen_coords coords) const -> std::optional<std::size_t>;
+    [[nodiscard]] auto look_at(std::size_t i) const -> highlight;
+    auto click_at(std::size_t i) -> click_status;
 
-    std::size_t set_word_count() noexcept;
-    std::size_t set_word_length() noexcept;
+    auto set_word_count() noexcept -> std::size_t;
+    auto set_word_length() noexcept -> std::size_t;
     void generate_term_chars() noexcept;
     void generate_words() noexcept;
 
     util::xoroshiro128 rng;
 
-    const lock_level lock_level_setting_;
-    const uint32_t player_science_skill_;
-    const std::size_t word_length_;
-    const std::size_t word_count_;
-    const std::size_t answer_;
+    lock_level lock_level_setting_;
+    uint32_t player_science_skill_;
+    std::size_t word_length_;
+    std::size_t word_count_;
+    std::size_t answer_;
 
     std::size_t attempts_left_ = 4;
     std::size_t words_left_;

@@ -8,7 +8,6 @@
 
 #include <ftxui/component/component.hpp>
 
-#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -19,9 +18,9 @@ class user_interface
     using fcallback_t = std::function<yafth::state(yafth::input)>;
 
   public:
-    user_interface(const fcallback_t &callback, std::uint64_t seed);
+    user_interface(fcallback_t callback, std::uint64_t seed);
 
-    ftxui::Component create();
+    auto create() -> ftxui::Component;
 
   private:
     void update_internals_();

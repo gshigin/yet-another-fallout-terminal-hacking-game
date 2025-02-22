@@ -1,4 +1,4 @@
 ---
-Checks: 'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*'
+Checks: 'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,modernize-*,performance-*,misc-*
 WarningsAsErrors: true
 FormatStyle: microsoft

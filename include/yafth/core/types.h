@@ -10,16 +10,16 @@
 
 namespace yafth::inline types
 {
-enum class lock_level
+enum class lock_level : uint8_t
 {
-    very_easy = 0,
-    easy = 1,
-    average = 2,
-    hard = 3,
-    very_hard = 4
+    very_easy,
+    easy,
+    average,
+    hard,
+    very_hard
 };
 
-enum class input_type
+enum class input_type : uint8_t
 {
     look,
     click,

@@ -13,15 +13,15 @@ namespace yafth::util
 class argparser
 {
   public:
-    static args parse(int argc, char *argv[]);
+    static auto parse(int argc, char *argv[]) -> args;
 
   private:
     static void show_help_();
-    static std::string get_next_arg_(int argc, char *argv[], int current_index, const std::string &arg_name);
+    static auto get_next_arg_(int argc, char *argv[], int current_index, const std::string &arg_name) -> std::string;
 
-    static std::uint32_t handle_science_(const std::string &value);
-    static lock_level handle_lock_(const std::string &value);
-    static std::uint64_t handle_seed_(const std::string &value);
+    static auto handle_science_(const std::string &value) -> std::uint32_t;
+    static auto handle_lock_(const std::string &value) -> lock_level;
+    static auto handle_seed_(const std::string &value) -> std::uint64_t;
     static void check_defaults_(std::optional<std::uint32_t> &science_level, std::optional<lock_level> &lock,
                                 std::optional<std::uint64_t> &seed);
 };

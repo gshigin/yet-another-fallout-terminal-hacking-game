@@ -5,11 +5,9 @@
 #include <yafth/app/application.h>
 #include <yafth/util/args.h>
 
-#include <memory>
-
 int main(int argc, char *argv[])
 {
-    yafth::args arguments;
+    yafth::args arguments{};
     try
     {
         arguments = yafth::util::argparser::parse(argc, argv);

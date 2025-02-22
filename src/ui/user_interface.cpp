@@ -5,11 +5,13 @@
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+#include <utility>
+#include <iomanip>
 
 namespace yafth::ui
 {
-user_interface::user_interface(const fcallback_t &callback, std::uint64_t seed)
-    : callback_(callback), start_hex_(util::seed(seed))
+user_interface::user_interface(fcallback_t callback, std::uint64_t seed)
+    : callback_(std::move(callback)), start_hex_(util::seed(seed))
 {
     terminal_state_ = callback_(input{input_type::other, {}});
 }

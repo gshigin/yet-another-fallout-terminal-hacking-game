@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #include <yafth/app/application.h>
-#include <yafth/ui/user_interface.h>
 #include <yafth/core/engine.h>
+#include <yafth/ui/user_interface.h>
 
 #include <ftxui/component/screen_interactive.hpp>
 
@@ -18,7 +18,7 @@ struct application::impl
     yafth::core::engine engine;
     yafth::ui::user_interface ui;
 
-    bool game_over;
+    bool game_over{false};
 };
 
 application::impl::impl(yafth::args args)
@@ -42,6 +42,7 @@ application::impl::impl(yafth::args args)
               return current_state;
           },
           util::seed(args.seed))
+      
 {
 }
 
