@@ -3,6 +3,7 @@
 // the LICENSE file.
 #pragma once
 // yafth
+#include <yafth/core/engine_detail/terminal_buffer.h>
 #include <yafth/core/terminal_layout.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
@@ -14,10 +15,9 @@
 
 namespace
 {
-constexpr size_t visible_chars_num = terminal_layout::interaction_window::interactive_window_1::height *
-                                         terminal_layout::interaction_window::interactive_window_1::width +
-                                     terminal_layout::interaction_window::interactive_window_2::height *
-                                         terminal_layout::interaction_window::interactive_window_2::width;
+constexpr size_t visible_chars_num =
+    terminal_layout::interaction_window::interactive_window_1::height * terminal_layout::interaction_window::interactive_window_1::width +
+    terminal_layout::interaction_window::interactive_window_2::height * terminal_layout::interaction_window::interactive_window_2::width;
 }
 
 namespace yafth::core
@@ -32,7 +32,7 @@ class engine
 
   public:
     engine(lock_level lock_level_setting, uint32_t player_science_skill, uint64_t seed);
-    engine() : engine(lock_level::average, 50, 0) {};
+    engine() : engine(lock_level::average, 50, 0){};
 
     auto process_input(input input) -> state;
 
@@ -58,7 +58,8 @@ class engine
     std::size_t words_left_;
 
     std::array<std::size_t, 20> words_;
-    std::array<char, visible_chars_num> term_chars_;
+    // std::array<char, visible_chars_num> term_chars_;
+    engine_detail::terminal_buffer terminal_;
 
     std::bitset<::visible_chars_num> used_bracket_;
 
