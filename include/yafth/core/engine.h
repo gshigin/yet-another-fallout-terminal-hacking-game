@@ -3,13 +3,13 @@
 // the LICENSE file.
 #pragma once
 // yafth
+#include <yafth/core/engine_detail/game_state.h>
 #include <yafth/core/engine_detail/terminal_buffer.h>
 #include <yafth/core/terminal_layout.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
 #include <array>
-#include <bitset>
 #include <cstdint>
 #include <optional>
 
@@ -50,19 +50,15 @@ class engine
 
     lock_level lock_level_setting_;
     uint32_t player_science_skill_;
+
     std::size_t word_length_;
     std::size_t word_count_;
     std::size_t answer_;
-
-    std::size_t attempts_left_ = 4;
     std::size_t words_left_;
 
     std::array<std::size_t, 20> words_;
-    // std::array<char, visible_chars_num> term_chars_;
+
     engine_detail::terminal_buffer terminal_;
-
-    std::bitset<::visible_chars_num> used_bracket_;
-
-    engine_state internal_state_ = engine_state::running;
+    engine_detail::game_state state_;
 };
 } // namespace yafth::core

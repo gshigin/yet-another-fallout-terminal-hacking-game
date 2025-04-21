@@ -7,6 +7,7 @@
 #include <yafth/util/random.h>
 // stl
 #include <algorithm>
+#include <cassert>
 #include <numeric>
 
 namespace
@@ -14,7 +15,7 @@ namespace
 // constexpr brackets lookup
 static constexpr std::array<std::pair<char, char>, 4> brackets{{{'{', '}'}, {'(', ')'}, {'<', '>'}, {'[', ']'}}};
 
-constexpr auto lookup = [](const char c) { return std::find_if(begin(brackets), end(brackets), [&c](const auto &v) { return v.first == c; })->second; };
+constexpr auto bracket_lookup = [](const char c) { return std::find_if(begin(brackets), end(brackets), [&c](const auto &v) { return v.first == c; })->second; };
 
 constexpr auto is_char = [](const char c) { return c >= 'A' && c <= 'Z'; };
 constexpr auto is_open_br = [](const char c) { return c == '(' || c == '[' || c == '<' || c == '{'; };
@@ -228,46 +229,42 @@ void engine::generate_words() noexcept
 
 highlight engine::look_at(std::size_t i) const
 {
-    i = std::clamp<std::size_t>(i, 0, terminal_.size() - 1);
+    assert(i < terminal_.size());
+
     if (::is_char(terminal_.get(i))) // case of word
     {
         auto l = i;
-        auto r = l;
-        while (l != 0 && ::is_char(terminal_.get(l)))
+        while (l > 0 && ::is_char(terminal_.get(l - 1)))
         {
             --l;
         }
-        if (!::is_char(terminal_.get(l)))
-        {
-            ++l;
-        }
-        while (r != terminal_.size() && ::is_char(terminal_.get(r)))
+
+        auto r = i;
+        while (r < terminal_.size() && ::is_char(terminal_.get(r)))
         {
             ++r;
         }
+
         return {l, r};
     }
-    else if (::is_open_br(terminal_.get(i)) && !used_bracket_.test(i)) // case of brackets
+    else if (::is_open_br(terminal_.get(i)) && !state_.is_bracket_used(i)) // case of brackets
     {
-        const std::size_t j = ((i / 12) + 1) * 12;
-        const char c = ::lookup(terminal_.get(i));
-        auto e = j;
-        for (auto it = i; it != e; ++it)
+        const size_t limit = ((i / 12) + 1) * 12;
+        const char expected_close = ::bracket_lookup(terminal_.get(i));
+
+        for (size_t index = i; index != limit; ++index)
         {
-            if (::is_char(terminal_.get(it)))
+            char c = terminal_.get(index);
+
+            if (::is_char(c))
             {
-                e = i;
                 break;
             }
-            if (terminal_.get(it) == c)
+
+            if (c == expected_close)
             {
-                e = it;
-                break;
+                return {i, index + 1};
             }
-        }
-        if (e != j)
-        {
-            return {i, e + 1};
         }
     }
     // case of one symbol
@@ -277,13 +274,13 @@ highlight engine::look_at(std::size_t i) const
 // this code is shit
 click_status engine::click_at(std::size_t i)
 {
-    if (internal_state_ == engine_state::done)
+    if (state_.is_game_over())
     {
         throw yafth::bad_engine_access();
     }
     i = std::clamp<std::size_t>(i, 0, terminal_.size() - 1);
     const auto &[b, e] = look_at(i);
-    std::string_view substr = terminal_.slice(b, e); // {term_chars_.begin() + b, term_chars_.begin() + e};
+    std::string_view substr = terminal_.slice(b, e);
     const std::string_view term = terminal_.view();
     if (substr.size() != 1)
     {
@@ -291,22 +288,21 @@ click_status engine::click_at(std::size_t i)
         {
             if (term.substr(words_[answer_], word_length_) == substr)
             {
-                internal_state_ = engine_state::done;
+                state_.set_game_over();
                 return {click_result::exact_match, {}};
             }
             else // it's not an answer
             {
-                --attempts_left_;
+                state_.consume_attempt();
                 const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words_[answer_], 0, std::plus<>(), std::equal_to<>());
                 const std::size_t offset = term.find(substr);
-                // std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
                 terminal_.replace_with_char(offset, offset + word_length_);
                 std::iter_swap(words_.begin() + words_left_ - 1, std::find(words_.begin(), words_.end(), offset));
                 --words_left_;
 
-                if (attempts_left_ == 0)
+                if (state_.attempts_left() == 0)
                 {
-                    internal_state_ = engine_state::done;
+                    state_.set_game_over();
                     return {click_result::lockout_in_progress, word_match{match, word_length_}};
                 }
 
@@ -317,23 +313,22 @@ click_status engine::click_at(std::size_t i)
         {
             const std::size_t dist = std::distance<const char *>(term.data(),
                                                                  substr.data()); // seem like a problem, but works fine
-            if (!used_bracket_.test(dist))
+            if (!state_.is_bracket_used(dist))
             {
-                used_bracket_.set(dist);
+                state_.mark_bracket_used(dist);
 
                 if (words_left_ == 1)
                 {
-                    attempts_left_ = 4;
+                    state_.reset_attempts();
                     return {click_result::allowance_replenished, {}};
                 }
                 else // words_left != 1
                 {
-                    if (attempts_left_ == 4)
+                    if (state_.attempts_left() == 4)
                     {
                         // remove dud
                         std::size_t dud_id = 1 + (rng.next() % (words_left_ - 1));
                         const std::size_t offset = words_[dud_id];
-                        // std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
                         terminal_.replace_with_char(offset, offset + word_length_);
                         std::iter_swap(words_.begin() + words_left_ - 1, words_.begin() + dud_id);
                         --words_left_;
@@ -347,7 +342,6 @@ click_status engine::click_at(std::size_t i)
                             // remove dud
                             std::size_t dud_id = 1 + (rng.next() % (words_left_ - 1));
                             const std::size_t offset = words_[dud_id];
-                            // std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
                             terminal_.replace_with_char(offset, offset + word_length_);
                             std::iter_swap(words_.begin() + words_left_ - 1, words_.begin() + dud_id);
                             --words_left_;
@@ -356,7 +350,7 @@ click_status engine::click_at(std::size_t i)
                         }
                         else
                         {
-                            attempts_left_ = 4;
+                            state_.reset_attempts();
                             return {click_result::allowance_replenished, {}};
                         }
                     }
@@ -401,26 +395,26 @@ state engine::process_input(input current_input)
     switch (current_input.type)
     {
     case input_type::other: // do nothing, return current state
-        return {std::string{terminal_.view()}, attempts_left_, {}, {}};
+        return {std::string{terminal_.view()}, state_.attempts_left(), {}, {}};
         break;
     case input_type::look:
         if (internal_coord.has_value())
         {
             auto hl = look_at(*internal_coord);
-            return {std::string{terminal_.view()}, attempts_left_, hl, std::nullopt};
+            return {std::string{terminal_.view()}, state_.attempts_left(), hl, std::nullopt};
         }
-        return {std::string{terminal_.view()}, attempts_left_, std::nullopt, {}};
+        return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, {}};
         break;
     case input_type::click:
         if (internal_coord.has_value())
         {
             auto click_res = click_at(*internal_coord);
-            return {std::string{terminal_.view()}, attempts_left_, std::nullopt, click_res};
+            return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, click_res};
         }
-        return {std::string{terminal_.view()}, attempts_left_, std::nullopt, std::nullopt};
+        return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, std::nullopt};
         break;
     }
     // should not happen
-    return {std::string{terminal_.view()}, attempts_left_, std::nullopt, std::nullopt};
+    return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, std::nullopt};
 }
 } // namespace yafth::core
