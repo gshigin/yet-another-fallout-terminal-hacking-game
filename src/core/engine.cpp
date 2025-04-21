@@ -45,7 +45,7 @@ namespace yafth::core
 engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0)
     : rng{0, util::seed(seed)}, lock_level_setting_(lock_level_setting),
       player_science_skill_(
-          std::clamp<uint32_t>(player_science_skill_, player_science_skill_min, player_science_skill_max)),
+          std::clamp<uint32_t>(player_science_skill, player_science_skill_min, player_science_skill_max)),
       word_length_(set_word_length()), word_count_(set_word_count()), answer_(0), words_left_(word_count_)
 {
     generate_term_chars();
@@ -334,8 +334,8 @@ click_status engine::click_at(std::size_t i)
             else // it's not an answer
             {
                 --attempts_left_;
-                const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words_[answer_],
-                                                             0, std::plus<>(), std::equal_to<>());
+                const std::size_t match = std::inner_product(
+                    substr.begin(), substr.end(), term.begin() + words_[answer_], 0, std::plus<>(), std::equal_to<>());
                 const std::size_t offset = term.find(substr);
                 std::fill(term_chars_.begin() + offset, term_chars_.begin() + offset + word_length_, '.');
                 std::iter_swap(words_.begin() + words_left_ - 1, std::find(words_.begin(), words_.end(), offset));
