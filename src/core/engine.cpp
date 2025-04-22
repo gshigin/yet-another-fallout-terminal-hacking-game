@@ -272,26 +272,26 @@ auto engine::process_input(input current_input) -> state
     switch (current_input.type)
     {
     case input_type::other: // do nothing, return current state
-        return {std::string{terminal_.view()}, state_.attempts_left(), {}, {}};
+        return {terminal_.view(), state_.attempts_left(), {}, {}};
         break;
     case input_type::look:
         if (internal_coord.has_value())
         {
             auto hl = look_at(*internal_coord);
-            return {std::string{terminal_.view()}, state_.attempts_left(), hl, std::nullopt};
+            return {terminal_.view(), state_.attempts_left(), hl, std::nullopt};
         }
-        return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, {}};
+        return {terminal_.view(), state_.attempts_left(), std::nullopt, {}};
         break;
     case input_type::click:
         if (internal_coord.has_value())
         {
             auto click_res = click_at(*internal_coord);
-            return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, click_res};
+            return {terminal_.view(), state_.attempts_left(), std::nullopt, click_res};
         }
-        return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, std::nullopt};
+        return {terminal_.view(), state_.attempts_left(), std::nullopt, std::nullopt};
         break;
     }
     // should not happen
-    return {std::string{terminal_.view()}, state_.attempts_left(), std::nullopt, std::nullopt};
+    return {terminal_.view(), state_.attempts_left(), std::nullopt, std::nullopt};
 }
 } // namespace yafth::core
