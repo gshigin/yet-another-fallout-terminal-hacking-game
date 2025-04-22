@@ -3,12 +3,15 @@
 // the LICENSE file.
 // yafth
 #include <yafth/core/engine.h>
+#include <yafth/core/engine_detail/symbol_manipulator.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
 #include <algorithm>
 #include <cassert>
 #include <numeric>
+#include <string>
+#include <utility>
 
 namespace
 {
@@ -20,11 +23,31 @@ constexpr auto bracket_lookup = [](const char c) { return std::find_if(begin(bra
 constexpr auto is_char = [](const char c) { return c >= 'A' && c <= 'Z'; };
 constexpr auto is_open_br = [](const char c) { return c == '(' || c == '[' || c == '<' || c == '{'; };
 
-constexpr uint32_t player_science_skill_min = 1;
-constexpr uint32_t player_science_skill_max = 100;
+// from https://geckwiki.com/index.php?title=Hacking_Word_Count
+auto compute_word_count(yafth::lock_level lock_level_setting, uint32_t player_science_skill) noexcept -> std::size_t
+{
+    assert(0 <= player_science_skill && player_science_skill <= 100);
 
-constexpr uint32_t max_word_length = 12;
-constexpr uint32_t max_word_count = 20;
+    constexpr std::size_t hacking_min_words = 5;
+    constexpr std::size_t hacking_max_words = 20;
+    const std::size_t lock_level = static_cast<std::size_t>(lock_level_setting) * 25;
+    const std::size_t science_offset = player_science_skill - lock_level;
+    const std::size_t lock_offset = 100 - lock_level;
+
+    const double sol_coef =
+        lock_offset == 0 ? 0.5 : (1 - (static_cast<double>(science_offset) / static_cast<double>(lock_offset))); // science_offset over lock_offset coef
+
+    const std::size_t word_count_ = static_cast<std::size_t>(sol_coef * (hacking_max_words - hacking_min_words)) + hacking_min_words;
+
+    return std::min<std::size_t>(20, word_count_);
+}
+
+template <class URBG>
+    requires std::uniform_random_bit_generator<std::remove_reference_t<URBG>>
+inline auto compute_word_length(yafth::lock_level lock_level_setting, URBG &&g) noexcept -> std::size_t
+{
+    return std::min<std::size_t>(12, 4 + 2 * static_cast<std::size_t>(lock_level_setting) + (std::forward<URBG>(g)() & 1));
+}
 } // namespace
 
 namespace yafth
@@ -42,192 +65,21 @@ class bad_engine_access : public std::exception
 namespace yafth::core
 {
 engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0)
-    : rng{0, util::seed(seed)}, lock_level_setting_(lock_level_setting),
-      player_science_skill_(std::clamp<uint32_t>(player_science_skill, player_science_skill_min, player_science_skill_max)), word_length_(set_word_length()),
-      word_count_(set_word_count()), answer_(0), words_left_(word_count_)
+    : rng_{static_cast<uint32_t>(util::seed(seed))}
 {
-    generate_term_chars();
-    generate_words();
+    engine_detail::symdol_manipulator::generate_term_chars(terminal_, rng_);
+
+    const std::size_t word_length = compute_word_length(lock_level_setting, rng_);
+    const std::size_t word_count = compute_word_count(lock_level_setting, player_science_skill);
+
+    const std::array<std::string, 20> word_list = engine_detail::symdol_manipulator::generate_words(word_length, word_count, rng_);
+    const std::size_t answer_index = rng_.next() % word_count;
+    const std::array<uint16_t, 20> offsets = engine_detail::symdol_manipulator::place_words(terminal_, word_list, word_length, word_count, rng_);
+
+    words_.init(word_length, word_count, answer_index, offsets);
 }
 
-inline std::size_t engine::set_word_length() noexcept
-{
-    return std::min<std::size_t>(max_word_length, 4 + 2 * static_cast<std::size_t>(lock_level_setting_) + (rng.next() & 1));
-}
-
-// from https://geckwiki.com/index.php?title=Hacking_Word_Count
-std::size_t engine::set_word_count() noexcept
-{
-    constexpr std::size_t hacking_min_words = 5;
-    constexpr std::size_t hacking_max_words = 20;
-    const std::size_t lock_level = static_cast<std::size_t>(lock_level_setting_) * 25;
-    const std::size_t science_offset = player_science_skill_ - lock_level;
-    const std::size_t lock_offset = 100 - lock_level;
-
-    const double sol_coef =
-        lock_offset == 0 ? 0.5 : (1 - (static_cast<double>(science_offset) / static_cast<double>(lock_offset))); // science_offset over lock_offset coef
-
-    const std::size_t word_count_ = static_cast<std::size_t>(sol_coef * (hacking_max_words - hacking_min_words)) + hacking_min_words;
-
-    return std::min<std::size_t>(max_word_count, word_count_);
-}
-
-void engine::generate_term_chars() noexcept
-{
-    constexpr std::array<char, 24> placeholders = {'.', ',', '!', '?', '/', '*', '+', '\'', ':', ';', '-', '_',
-                                                   '%', '$', '|', '@', '{', '}', '[', ']',  '(', ')', '<', '>'};
-
-    for (size_t i = 0; i < terminal_.size(); ++i)
-    {
-        terminal_.set(i, placeholders[rng.next() % placeholders.size()]);
-    }
-}
-
-void engine::generate_words() noexcept
-{
-    constexpr size_t word_array_size = 100;
-    std::array<std::string, word_array_size> word_array{};
-    if (word_length_ == 4)
-    {
-        word_array = {"THAT", "WITH", "FROM", "WERE", "THIS", "THEY", "HAVE", "SAID", "WHAT", "WHEN", "BEEN", "THEM", "INTO", "MORE", "ONLY", "WILL", "THEN",
-                      "SOME", "TIME", "SUCH", "VERY", "OVER", "YOUR", "THAN", "WELL", "DOWN", "FACE", "UPON", "LIKE", "SAME", "KNOW", "WENT", "MADE", "LONG",
-                      "CAME", "ROOM", "MUST", "EVEN", "EYES", "COME", "MOST", "LIFE", "AWAY", "HAND", "LEFT", "ALSO", "JUST", "ARMY", "BACK", "GOOD", "HEAD",
-                      "MARY", "PART", "FELT", "HERE", "MUCH", "BONE", "TAKE", "MANY", "SKIN", "TOOK", "ONCE", "LOOK", "LAST", "BOTH", "GIVE", "SIDE", "FORM",
-                      "MAKE", "DOOR", "KNEW", "TELL", "TOLD", "WHOM", "LOVE", "DAYS", "DEAR", "SEEN", "GAVE", "CASE", "DONE", "FREE", "SOON", "EACH", "WORK",
-                      "LESS", "WIFE", "DOES", "MIND", "BODY", "OPEN", "WANT", "SENT", "HALF", "YEAR", "PAIN", "WORD", "HOME", "ANNA", "FIND"};
-    }
-    if (word_length_ == 5)
-    {
-        word_array = {"WHICH", "THERE", "THEIR", "WOULD", "COULD", "AFTER", "OTHER", "ABOUT", "THESE", "THOSE", "FIRST", "WHERE", "UNDER", "STILL", "BEING",
-                      "AGAIN", "BEGAN", "GREAT", "ASKED", "WHILE", "COUNT", "WHOLE", "SHALL", "RIGHT", "PLACE", "STATE", "HOUSE", "EVERY", "HEARD", "YOUNG",
-                      "NEVER", "THREE", "YEARS", "THINK", "ROUND", "FOUND", "BLOOD", "POWER", "MIGHT", "SMALL", "QUITE", "LARGE", "VOICE", "WORDS", "HANDS",
-                      "CASES", "AMONG", "SONYA", "OFTEN", "TAKEN", "SMILE", "KNOWN", "ALONG", "ORDER", "WOMEN", "NIGHT", "STOOD", "JOINT", "CAUSE", "GOING",
-                      "GIVEN", "WORLD", "CHIEF", "FRONT", "WHITE", "ALONE", "HORSE", "LATER", "DEATH", "LABOR", "MONEY", "UNTIL", "WOMAN", "NERVE", "SOUTH",
-                      "WOUND", "THING", "LEAVE", "ABOVE", "ADDED", "PARTY", "PARTS", "TABLE", "BORIS", "ENEMY", "CRIED", "LIGHT", "UNION", "EARLY", "PETYA",
-                      "BONES", "SINCE", "HEART", "FORMS", "SPEAK", "MEANS", "MOVED", "FORCE", "THIRD", "SHORT"};
-    }
-    if (word_length_ == 6)
-    {
-        word_array = {"PIERRE", "PRINCE", "BEFORE", "SHOULD", "ANDREW", "FRENCH", "LITTLE", "STATES", "PEOPLE", "ROSTOV", "LOOKED", "MOSCOW", "SEEMED",
-                      "HAVING", "THOUGH", "ALWAYS", "TISSUE", "UNITED", "FATHER", "DURING", "TURNED", "MOMENT", "HOLMES", "CALLED", "BATTLE", "OTHERS",
-                      "BECOME", "BEHIND", "COURSE", "RESULT", "PASSED", "MATTER", "ACTION", "TOWARD", "ALMOST", "THINGS", "TROOPS", "BECAME", "WITHIN",
-                      "MOTHER", "TAKING", "NUMBER", "EITHER", "LETTER", "PUBLIC", "COMMON", "FRIEND", "SECOND", "CANNOT", "GLANDS", "ITSELF", "REALLY",
-                      "TWENTY", "AROUND", "SAYING", "BETTER", "HORSES", "VASILI", "SYSTEM", "FORMED", "FELLOW", "LONGER", "MYSELF", "BEYOND", "GROWTH",
-                      "ANYONE", "ORDERS", "TUMOUR", "ACROSS", "RATHER", "BESIDE", "COMING", "MAKING", "OPENED", "WANTED", "RAISED", "FAMILY", "WISHED",
-                      "SEEING", "ANSWER", "EVENTS", "PERIOD", "GERMAN", "RUSSIA", "SPREAD", "MIDDLE", "REASON", "RETURN", "MERELY", "SILENT", "EFFECT",
-                      "GIVING", "WINDOW", "WOUNDS", "PERSON", "DINNER", "DOCTOR", "PLACED", "TRYING", "STREET"};
-    }
-    if (word_length_ == 7)
-    {
-        word_array = {"NATASHA", "HIMSELF", "WITHOUT", "THOUGHT", "ANOTHER", "GENERAL", "THROUGH", "AGAINST", "BETWEEN", "NOTHING", "EMPEROR", "BECAUSE",
-                      "DISEASE", "KUTUZOV", "USUALLY", "LOOKING", "ALREADY", "CHAPTER", "OFFICER", "RUSSIAN", "HISTORY", "DENISOV", "HOWEVER", "COUNTRY",
-                      "BROUGHT", "PATIENT", "SEVERAL", "FEELING", "CERTAIN", "WHETHER", "HERSELF", "MORNING", "PRESENT", "REPLIED", "ENGLAND", "AMERICA",
-                      "TISSUES", "PROJECT", "EXAMPLE", "CARRIED", "ENTERED", "SURFACE", "SITTING", "BRITISH", "EVENING", "SHOUTED", "VESSELS", "BECOMES",
-                      "DRAWING", "FORWARD", "HUNDRED", "RESULTS", "WOUNDED", "SERVICE", "ANATOLE", "REACHED", "STRANGE", "PROCESS", "OPINION", "SOLDIER",
-                      "AFFAIRS", "ENGLISH", "SLAVERY", "STOPPED", "PERHAPS", "TURNING", "APPLIED", "MUSCLES", "TALKING", "RAPIDLY", "HUSBAND", "ABSCESS",
-                      "COMPANY", "NOTICED", "TUMOURS", "FEDERAL", "SUBJECT", "BELIEVE", "WAITING", "QUICKLY", "REMOVED", "ACCOUNT", "BROTHER", "FOREIGN",
-                      "GLANCED", "FREEDOM", "COVERED", "SOCIETY", "CHANGES", "NEITHER", "SMILING", "ROSTOVS", "SOMEONE", "VILLAGE", "LESIONS", "SPECIAL",
-                      "MEMBERS", "FINALLY", "FRIENDS", "VARIOUS"};
-    }
-    if (word_length_ == 8)
-    {
-        word_array = {"PRINCESS", "AMERICAN", "NICHOLAS", "NAPOLEON", "COUNTESS", "SUDDENLY", "CONGRESS", "POSITION", "SOLDIERS", "ANYTHING",
-                      "QUESTION", "MOVEMENT", "POSSIBLE", "DOLOKHOV", "FOLLOWED", "BUSINESS", "OFFICERS", "NATIONAL", "RECEIVED", "TOGETHER",
-                      "THOUSAND", "EVERYONE", "PRESSURE", "CHILDREN", "REMAINED", "REGIMENT", "MILITARY", "ANSWERED", "INTEREST", "STANDING",
-                      "PRESENCE", "ANEURYSM", "REPEATED", "HAPPENED", "COLONIES", "AFFECTED", "APPEARED", "SOUTHERN", "TERRIBLE", "RETURNED",
-                      "FEATURES", "CAMPAIGN", "SPEAKING", "DAUGHTER", "STRENGTH", "COLONIAL", "MEASURES", "SYMPTOMS", "SYPHILIS", "GANGRENE",
-                      "REMARKED", "ALTHOUGH", "SWELLING", "ADJUTANT", "YOURSELF", "REMEMBER", "CLINICAL", "CONTRARY", "EMPLOYED", "LISTENED",
-                      "MEMBRANE", "PAVLOVNA", "RUSSIANS", "VIRGINIA", "PROBABLY", "COMPLETE", "GOVERNOR", "CARRIAGE", "DECLARED", "CONSISTS",
-                      "PLEASURE", "RELATION", "PREPARED", "ALPATYCH", "PROPERTY", "THINKING", "DISEASES", "INDUSTRY", "ATTENDED", "PRODUCED",
-                      "ACTIVITY", "OBSERVED", "DRESSING", "PEASANTS", "EXPECTED", "THOUGHTS", "STRAIGHT", "MAJORITY", "OCCURRED", "ECONOMIC",
-                      "COMMERCE", "ELECTION", "DISTANCE", "GENERALS", "HANDSOME", "OCCUPIED", "POLITICS", "SHOULDER", "BACTERIA", "INCREASE"};
-    }
-    if (word_length_ == 9)
-    {
-        word_array = {"SOMETHING", "TREATMENT", "SOMETIMES", "EVIDENTLY", "PRESIDENT", "INFECTION", "CONDITION", "NECESSARY", "COMMANDER", "CONTINUED",
-                      "IMPORTANT", "DIFFERENT", "GUTENBERG", "POLITICAL", "FORMATION", "OPERATION", "FOLLOWING", "ATTENTION", "THEREFORE", "QUESTIONS",
-                      "BOLKONSKI", "CHARACTER", "ACCORDING", "BAGRATION", "ALEXANDER", "DESCRIBED", "RELATIONS", "DIFFICULT", "SECONDARY", "DIRECTION",
-                      "BEGINNING", "HAPPINESS", "INCREASED", "INFLUENCE", "EXPRESSED", "BOURIENNE", "DESTROYED", "EVERYBODY", "JEFFERSON", "ORGANISMS",
-                      "SHOULDERS", "RESULTING", "PRISONERS", "CERTAINLY", "PRESENTED", "ARTICULAR", "EXCLAIMED", "INTERESTS", "MOVEMENTS", "DIAGNOSIS",
-                      "TERRITORY", "SUFFERING", "VARIETIES", "CARTILAGE", "FRENCHMAN", "AUTHORITY", "DISCHARGE", "GENTLEMEN", "GENTLEMAN", "BEAUTIFUL",
-                      "DEMOCRACY", "WHISPERED", "BONAPARTE", "DEMOCRATS", "THOUSANDS", "DANGEROUS", "ESSENTIAL", "APPOINTED", "GENERALLY", "ROOSEVELT",
-                      "AMENDMENT", "GRADUALLY", "LISTENING", "INDICATED", "MALIGNANT", "SITUATION", "NECESSITY", "BRILLIANT", "INCLUDING", "AGITATION",
-                      "CONVINCED", "SOVEREIGN", "COMPANION", "CONCERNED", "SURPRISED", "AMERICANS", "SPERANSKI", "BENNIGSEN", "OURSELVES", "PROMINENT",
-                      "PARALYSIS", "SEPARATED", "HURRIEDLY", "AFFECTION", "COMPANIES", "SENSATION", "ABANDONED", "ADDRESSED", "CAREFULLY", "ARTHRITIS"};
-    }
-    if (word_length_ == 10)
-    {
-        word_array = {
-            "GOVERNMENT", "EVERYTHING", "UNDERSTAND", "ESPECIALLY", "EXPRESSION", "THEMSELVES", "IMPOSSIBLE", "PETERSBURG", "CONDITIONS", "UNDERSTOOD",
-            "FREQUENTLY", "REVOLUTION", "ASSOCIATED", "REPUBLICAN", "WASHINGTON", "CONSIDERED", "CONVENTION", "SYPHILITIC", "FRIGHTENED", "APPEARANCE",
-            "HISTORIANS", "EXCELLENCY", "ROSTOPCHIN", "REMEMBERED", "INDIVIDUAL", "IMPORTANCE", "DIFFICULTY", "EXPERIENCE", "DMITRIEVNA", "SURROUNDED",
-            "CONNECTION", "CONNECTIVE", "POPULATION", "INDUSTRIAL", "OPPOSITION", "TENDERNESS", "COMPLETELY", "PARTICULAR", "AFFECTIONS", "FOUNDATION",
-            "RECOGNIZED", "PRINCIPLES", "APPROACHED", "CONCEPTION", "DEMOCRATIC", "INTRODUCED", "OPERATIONS", "THROUGHOUT", "REMARKABLE", "PERIOSTEUM",
-            "SUFFICIENT", "ADDRESSING", "AMPUTATION", "AFTERWARDS", "ENTERPRISE", "PROPORTION", "SETTLEMENT", "ABSOLUTELY", "COMPROMISE", "CHARACTERS",
-            "INCREASING", "APPARENTLY", "COMMERCIAL", "CONTAINING", "IMPRESSION", "OCCURRENCE", "ACCUSTOMED", "HISTORICAL", "INTERESTED", "PARLIAMENT",
-            "COMMANDERS", "DETERMINED", "INDUSTRIES", "IRRITATION", "PROTECTION", "RECOGNISED", "COMMISSION", "EXCITEMENT", "INEVITABLE", "EVERYWHERE",
-            "CONCLUSION", "ELECTRONIC", "LEADERSHIP", "LEUCOCYTES", "RESOLUTION", "SUCCESSFUL", "CALIFORNIA", "EPITHELIUM", "POSSESSION", "PREVIOUSLY",
-            "DIPLOMATIC", "CONFIDENCE", "PROTECTIVE", "ULCERATION", "UNPLEASANT", "ASSISTANCE", "HYPERAEMIA", "OCCUPATION", "PERMISSION", "PROVISIONS"};
-    }
-    if (word_length_ == 11)
-    {
-        word_array = {"TUBERCULOUS", "IMMEDIATELY", "HAEMORRHAGE", "SUPPURATION", "REPUBLICANS", "MIKHAYLOVNA", "ESTABLISHED", "DEVELOPMENT", "DESTRUCTION",
-                      "INTERRUPTED", "TEMPERATURE", "EXPERIENCED", "SURROUNDING", "SUPERFICIAL", "CIRCULATION", "CONTINUALLY", "POSSIBILITY", "ACCOMPANIED",
-                      "GRANULATION", "INHABITANTS", "LEGISLATURE", "MISSISSIPPI", "APPLICATION", "INDEPENDENT", "INFORMATION", "EXAMINATION", "INTERESTING",
-                      "APPROACHING", "IMMIGRATION", "OPPORTUNITY", "CONTRACTION", "LEGISLATION", "DISAPPEARED", "EXPLANATION", "AGRICULTURE", "AUTHORITIES",
-                      "ENLARGEMENT", "CONSIDERING", "FEDERALISTS", "PROGRESSIVE", "TRANSFERRED", "CONNECTICUT", "DECLARATION", "IMAGINATION", "BOGUCHAROVO",
-                      "EPITHELIOMA", "CONTINENTAL", "ASSOCIATION", "COMBINATION", "TERRITORIES", "DISTURBANCE", "REPRESENTED", "CICATRICIAL", "DISTRIBUTED",
-                      "SENSIBILITY", "APPOINTMENT", "COMPRESSION", "OBSERVATION", "SIGNIFICANT", "DISLOCATION", "INNUMERABLE", "BATTLEFIELD", "DISPOSITION",
-                      "OBLIGATIONS", "EXCEPTIONAL", "RESTORATION", "UNFORTUNATE", "ARRANGEMENT", "RECOGNIZING", "CONFEDERATE", "CORPORATION", "DISTINGUISH",
-                      "GOVERNMENTS", "CONTROVERSY", "INQUIRINGLY", "PREPARATION", "RECOGNITION", "APPROPRIATE", "ATTENTIVELY", "EXCEEDINGLY", "IMPROVEMENT",
-                      "INDIVIDUALS", "PRACTICALLY", "RESPONSIBLE", "APPEARANCES", "INDIFFERENT", "LEGISLATIVE", "NECESSARILY", "RECOMMENDED", "SUPPURATIVE",
-                      "UNDOUBTEDLY", "CONFEDERACY", "CONNECTIONS", "UNNECESSARY", "COMPLICATED", "CONVENTIONS", "PHILIPPINES", "CONSEQUENCE", "CONSTITUTES",
-                      "CONTRACTURE"};
-    }
-    if (word_length_ == 12)
-    {
-        word_array = {"CONSTITUTION", "ILLUSTRATION", "CONVERSATION", "PARTICULARLY", "CONSIDERABLE", "INDEPENDENCE", "MADEMOISELLE", "SUBCUTANEOUS",
-                      "PENNSYLVANIA", "INFLAMMATION", "OCCASIONALLY", "SIGNIFICANCE", "INTERFERENCE", "TUBERCULOSIS", "LEGISLATURES", "SATISFACTION",
-                      "PHILADELPHIA", "DEGENERATION", "DISTRIBUTION", "GRANULATIONS", "UNEXPECTEDLY", "ACQUAINTANCE", "HANDKERCHIEF", "DIFFICULTIES",
-                      "INFLAMMATORY", "HEADQUARTERS", "INSTRUCTIONS", "PROCLAMATION", "CONSERVATIVE", "PREPARATIONS", "MANUFACTURES", "SURROUNDINGS",
-                      "ORGANIZATION", "RESPECTFULLY", "SATISFACTORY", "CIVILIZATION", "INTELLECTUAL", "ACCOMPLISHED", "LEUCOCYTOSIS", "NEVERTHELESS",
-                      "RATIFICATION", "REGENERATION", "OSSIFICATION", "PATHOLOGICAL", "DISPOSITIONS", "DISSATISFIED", "INSTITUTIONS", "COMBINATIONS",
-                      "NEGOTIATIONS", "PRESIDENTIAL", "SUFFICIENTLY", "CONCENTRATED", "INTRODUCTION", "ARRANGEMENTS", "CONSEQUENTLY", "ASTONISHMENT",
-                      "PROFESSIONAL", "IMPROVEMENTS", "CORPORATIONS", "DISPLACEMENT", "INDIFFERENCE", "SUBSEQUENTLY", "ACCUMULATION", "CONSTRUCTION",
-                      "INTERVENTION", "SUCCESSFULLY", "FIBROMATOSIS", "INFILTRATION", "VERESHCHAGIN", "AFFECTIONATE", "APPLICATIONS", "DELIBERATELY",
-                      "EMANCIPATION", "LYMPHANGITIS", "PASSIONATELY", "RECOLLECTION", "REPRESENTING", "RESTRICTIONS", "AGRICULTURAL", "ESTABLISHING",
-                      "IRRESISTIBLE", "ANNOUNCEMENT", "CONGRATULATE", "DEMONSTRATED", "DIFFERENTIAL", "HENDRIKHOVNA", "REQUIREMENTS", "ACCIDENTALLY",
-                      "MILORADOVICH", "COMMENCEMENT", "COMPENSATION", "DISTRIBUTING", "STRENGTHENED", "TRANQUILLITY", "ACCOMPANYING", "ADMINISTERED",
-                      "ADVANTAGEOUS", "COLONIZATION", "CONSEQUENCES", "CONSIDERABLY"};
-    }
-    std::size_t i = 0;
-    std::array<char, max_word_count * max_word_length> words_chars;
-    auto it = words_chars.begin();
-    std::array<std::string_view, max_word_count> words_tmp;
-    do
-    {
-        auto next_word = word_array[rng.next() % word_array_size];
-        if (std::find(words_tmp.begin(), words_tmp.end(), next_word) == words_tmp.end())
-        {
-            std::copy(next_word.begin(), next_word.end(), it);
-            words_tmp[i] = std::string_view{it, std::next(it, word_length_)};
-            std::advance(it, word_length_);
-            ++i;
-        }
-    } while (i < word_count_);
-
-    const std::size_t space_per_word = terminal_.size() / word_count_;
-    const std::size_t possible_start = space_per_word - word_length_;
-    for (std::size_t id = 0; id < word_count_; ++id)
-    {
-        size_t index = id * space_per_word + rng.next() % possible_start;
-        terminal_.replace_with_string(index, words_tmp[id]);
-        words_[id] = index;
-    }
-    std::swap(words_[0], words_[rng.next() % word_count_]);
-}
-
-highlight engine::look_at(std::size_t i) const
+auto engine::look_at(std::size_t i) const -> highlight
 {
     assert(i < terminal_.size());
 
@@ -272,21 +124,22 @@ highlight engine::look_at(std::size_t i) const
 }
 
 // this code is shit
-click_status engine::click_at(std::size_t i)
+auto engine::click_at(std::size_t i) -> click_status
 {
+    assert(i < terminal_.size());
+
     if (state_.is_game_over())
     {
         throw yafth::bad_engine_access();
     }
-    i = std::clamp<std::size_t>(i, 0, terminal_.size() - 1);
     const auto &[b, e] = look_at(i);
     std::string_view substr = terminal_.slice(b, e);
     const std::string_view term = terminal_.view();
     if (substr.size() != 1)
     {
-        if (::is_char(term[b])) // word
+        if (words_.is_word_offset(b)) // word
         {
-            if (term.substr(words_[answer_], word_length_) == substr)
+            if (words_.is_answer_offset(b))
             {
                 state_.set_game_over();
                 return {click_result::exact_match, {}};
@@ -294,19 +147,19 @@ click_status engine::click_at(std::size_t i)
             else // it's not an answer
             {
                 state_.consume_attempt();
-                const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words_[answer_], 0, std::plus<>(), std::equal_to<>());
+                const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words_.offsets()[words_.answer_index()], 0,
+                                                             std::plus<>(), std::equal_to<>());
                 const std::size_t offset = term.find(substr);
-                terminal_.replace_with_char(offset, offset + word_length_);
-                std::iter_swap(words_.begin() + words_left_ - 1, std::find(words_.begin(), words_.end(), offset));
-                --words_left_;
+                terminal_.replace_with_char(offset, offset + words_.word_length());
+                words_.mark_removed(b);
 
                 if (state_.attempts_left() == 0)
                 {
                     state_.set_game_over();
-                    return {click_result::lockout_in_progress, word_match{match, word_length_}};
+                    return {click_result::lockout_in_progress, word_match{match, words_.word_length()}};
                 }
 
-                return {click_result::entry_denied, word_match{match, word_length_}};
+                return {click_result::entry_denied, word_match{match, words_.word_length()}};
             }
         }
         else // bracket
@@ -317,7 +170,7 @@ click_status engine::click_at(std::size_t i)
             {
                 state_.mark_bracket_used(dist);
 
-                if (words_left_ == 1)
+                if (words_.words_left() == 1)
                 {
                     state_.reset_attempts();
                     return {click_result::allowance_replenished, {}};
@@ -327,24 +180,48 @@ click_status engine::click_at(std::size_t i)
                     if (state_.attempts_left() == 4)
                     {
                         // remove dud
-                        std::size_t dud_id = 1 + (rng.next() % (words_left_ - 1));
-                        const std::size_t offset = words_[dud_id];
-                        terminal_.replace_with_char(offset, offset + word_length_);
-                        std::iter_swap(words_.begin() + words_left_ - 1, words_.begin() + dud_id);
-                        --words_left_;
+                        std::size_t dud_number = rng_() % (words_.words_left() - 1);
+
+                        for (auto offset : words_.offsets())
+                        {
+                            if (dud_number == 0)
+                            {
+                                dud_number = offset;
+                                break;
+                            }
+                            if (!words_.is_removed(offset) && !words_.is_answer_offset(offset))
+                            {
+                                --dud_number;
+                            }
+                        }
+
+                        terminal_.replace_with_char(dud_number, dud_number + words_.word_length());
+                        words_.mark_removed(dud_number);
 
                         return {click_result::dud_removed, {}};
                     }
                     else // attemptsLeft != 4
                     {
-                        if ((rng.next() & 1) == 1)
+                        if ((rng_() & 1) == 1)
                         {
                             // remove dud
-                            std::size_t dud_id = 1 + (rng.next() % (words_left_ - 1));
-                            const std::size_t offset = words_[dud_id];
-                            terminal_.replace_with_char(offset, offset + word_length_);
-                            std::iter_swap(words_.begin() + words_left_ - 1, words_.begin() + dud_id);
-                            --words_left_;
+                            std::size_t dud_number = rng_() % (words_.words_left() - 1);
+
+                            for (auto offset : words_.offsets())
+                            {
+                                if (dud_number == 0)
+                                {
+                                    dud_number = offset;
+                                    break;
+                                }
+                                if (!words_.is_removed(offset) && !words_.is_answer_offset(offset))
+                                {
+                                    --dud_number;
+                                }
+                            }
+
+                            terminal_.replace_with_char(dud_number, dud_number + words_.word_length());
+                            words_.mark_removed(dud_number);
 
                             return {click_result::dud_removed, {}};
                         }
@@ -362,7 +239,7 @@ click_status engine::click_at(std::size_t i)
 }
 
 // I'm lazy to change all constants to term_layout ones
-std::optional<std::size_t> engine::check_coords(screen_coords coords) const
+auto engine::check_coords(screen_coords coords) const -> std::optional<std::size_t>
 {
     auto m_x = coords.x;
     auto m_y = coords.y;
@@ -385,7 +262,7 @@ std::optional<std::size_t> engine::check_coords(screen_coords coords) const
     return 12 * m_y + m_x;
 }
 
-state engine::process_input(input current_input)
+auto engine::process_input(input current_input) -> state
 {
     std::optional<std::size_t> internal_coord;
     if (current_input.coords.has_value())

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <bitset>
 
 namespace yafth::core::engine_detail

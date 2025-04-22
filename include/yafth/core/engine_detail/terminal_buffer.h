@@ -1,7 +1,5 @@
 #pragma once
 
-#include <yafth/core/terminal_layout.h>
-
 #include <array>
 #include <string_view>
 
