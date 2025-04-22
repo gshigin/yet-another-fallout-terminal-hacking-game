@@ -67,14 +67,14 @@ namespace yafth::core
 engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0)
     : rng_{static_cast<uint32_t>(util::seed(seed))}
 {
-    engine_detail::symdol_manipulator::generate_term_chars(terminal_, rng_);
+    engine_detail::symbol_manipulator::generate_term_chars(terminal_, rng_);
 
     const std::size_t word_length = compute_word_length(lock_level_setting, rng_);
     const std::size_t word_count = compute_word_count(lock_level_setting, player_science_skill);
 
-    const std::array<std::string, 20> word_list = engine_detail::symdol_manipulator::generate_words(word_length, word_count, rng_);
+    const std::array<std::string, 20> word_list = engine_detail::symbol_manipulator::generate_words(word_length, word_count, rng_);
     const std::size_t answer_index = rng_.next() % word_count;
-    const std::array<uint16_t, 20> offsets = engine_detail::symdol_manipulator::place_words(terminal_, word_list, word_length, word_count, rng_);
+    const std::array<uint16_t, 20> offsets = engine_detail::symbol_manipulator::place_words(terminal_, word_list, word_length, word_count, rng_);
 
     words_.init(word_length, word_count, answer_index, offsets);
 }
@@ -99,7 +99,7 @@ auto engine::look_at(std::size_t i) const -> highlight
 
         return {l, r};
     }
-    else if (::is_open_br(terminal_.get(i)) && !state_.is_bracket_used(i)) // case of brackets
+    if (::is_open_br(terminal_.get(i)) && !state_.is_bracket_used(i)) // case of brackets
     {
         const size_t limit = ((i / 12) + 1) * 12;
         const char expected_close = ::bracket_lookup(terminal_.get(i));
@@ -149,8 +149,7 @@ auto engine::click_at(std::size_t i) -> click_status
                 state_.consume_attempt();
                 const std::size_t match = std::inner_product(substr.begin(), substr.end(), term.begin() + words_.offsets()[words_.answer_index()], 0,
                                                              std::plus<>(), std::equal_to<>());
-                const std::size_t offset = term.find(substr);
-                terminal_.replace_with_char(offset, offset + words_.word_length());
+                terminal_.replace_with_char(b, e);
                 words_.mark_removed(b);
 
                 if (state_.attempts_left() == 0)

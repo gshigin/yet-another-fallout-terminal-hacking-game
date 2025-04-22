@@ -30,7 +30,7 @@ endif()
 # Build
 file(GLOB_RECURSE LIB_SOURCES
     src/app/*.cpp
-    src/core/*.cpp
+    src/core/*.cpp 
     src/core/engine_detail/*.cpp
     src/ui/*.cpp
     src/util/*.cpp
