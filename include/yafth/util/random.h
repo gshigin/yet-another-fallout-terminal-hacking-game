@@ -1,10 +1,8 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
 
-#include <array>
-#include <bit>
 #include <climits>
 #include <cstdint>
 #include <limits>
@@ -35,44 +33,6 @@ constexpr auto seed_time() -> uint64_t
 
     return seed(shifted);
 }
-
-struct xoroshiro128
-{
-    std::array<uint64_t, 2> state;
-
-    constexpr auto next() noexcept -> std::uint64_t
-    {
-        const auto s0 = state[0];
-        auto s1 = state[1];
-        const auto result = std::rotl(s0 + s1, 17) + s0;
-
-        s1 ^= s0;
-        state[0] = std::rotl(s0, 49) ^ s1 ^ (s1 << 21);
-        state[1] = std::rotl(s1, 28);
-
-        return result >> 4;
-    }
-
-    constexpr auto operator()() noexcept -> std::uint64_t
-    {
-        return next();
-    }
-
-    constexpr auto fork() noexcept -> xoroshiro128
-    {
-        return xoroshiro128{next(), next()};
-    }
-
-    static constexpr auto min() noexcept -> uint64_t
-    {
-        return 0;
-    }
-    static constexpr auto max() noexcept -> uint64_t
-    {
-        return std::numeric_limits<uint64_t>::max() >> 4;
-    }
-    using result_type = uint64_t;
-};
 
 struct xorshift32
 {
