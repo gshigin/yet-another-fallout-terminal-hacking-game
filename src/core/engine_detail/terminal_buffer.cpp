@@ -1,5 +1,9 @@
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
+// Use of this source code is governed by the MIT license that can be found in
+// the LICENSE file.
+// yafth
 #include <yafth/core/engine_detail/terminal_buffer.h>
-
+// stl
 #include <algorithm>
 #include <cassert>
 

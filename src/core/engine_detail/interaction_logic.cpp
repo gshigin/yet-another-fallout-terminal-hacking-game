@@ -1,10 +1,14 @@
-#include <cassert>
-#include <numeric>
-
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
+// Use of this source code is governed by the MIT license that can be found in
+// the LICENSE file.
+// yafth
 #include <yafth/core/engine_detail/game_state.h>
 #include <yafth/core/engine_detail/interaction_logic.h>
 #include <yafth/core/engine_detail/terminal_buffer.h>
 #include <yafth/core/engine_detail/word_repository.h>
+// stl
+#include <cassert>
+#include <numeric>
 
 namespace
 {

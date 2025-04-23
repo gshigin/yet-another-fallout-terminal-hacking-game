@@ -1,10 +1,10 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
-
+// yafth
 #include <yafth/core/types.h>
-
+// stl
 #include <optional>
 #include <string>
 
@@ -22,7 +22,6 @@ class argparser
     static auto handle_science_(const std::string &value) -> std::uint32_t;
     static auto handle_lock_(const std::string &value) -> lock_level;
     static auto handle_seed_(const std::string &value) -> std::uint64_t;
-    static void check_defaults_(std::optional<std::uint32_t> &science_level, std::optional<lock_level> &lock,
-                                std::optional<std::uint64_t> &seed);
+    static void check_defaults_(std::optional<std::uint32_t> &science_level, std::optional<lock_level> &lock, std::optional<std::uint64_t> &seed);
 };
 } // namespace yafth::util

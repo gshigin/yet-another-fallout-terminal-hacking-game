@@ -1,10 +1,11 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
+// yafth
 #include <yafth/app/application.h>
 #include <yafth/core/engine.h>
 #include <yafth/ui/user_interface.h>
-
+// ftxui
 #include <ftxui/component/screen_interactive.hpp>
 
 namespace yafth::app
@@ -32,8 +33,7 @@ application::impl::impl(yafth::args args)
               }
               state current_state = engine.process_input(inp);
               if (current_state.click_res.has_value() &&
-                  (current_state.click_res->state == click_result::exact_match ||
-                   current_state.click_res->state == click_result::lockout_in_progress))
+                  (current_state.click_res->state == click_result::exact_match || current_state.click_res->state == click_result::lockout_in_progress))
               {
                   // end game on next call
                   game_over = true;
@@ -42,7 +42,7 @@ application::impl::impl(yafth::args args)
               return current_state;
           },
           util::seed(args.seed))
-      
+
 {
 }
 

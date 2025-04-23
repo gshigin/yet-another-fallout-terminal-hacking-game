@@ -3,9 +3,9 @@
 // the LICENSE file.
 #pragma once
 // yafth
-#include "yafth/core/engine_detail/word_repository.h"
 #include <yafth/core/engine_detail/game_state.h>
 #include <yafth/core/engine_detail/terminal_buffer.h>
+#include <yafth/core/engine_detail/word_repository.h>
 #include <yafth/core/terminal_layout.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>

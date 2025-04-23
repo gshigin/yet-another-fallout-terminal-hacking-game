@@ -1,12 +1,12 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
-
+// yafth
+#include <yafth/core/terminal_layout.h>
+// stl
 #include <optional>
 #include <string_view>
-
-#include <yafth/core/terminal_layout.h>
 
 namespace yafth::inline types
 {
