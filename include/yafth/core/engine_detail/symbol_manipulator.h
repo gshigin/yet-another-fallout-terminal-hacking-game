@@ -1,10 +1,14 @@
 #pragma once
 
-#include <yafth/core/engine_detail/terminal_buffer.h>
-
 #include <array>
 #include <functional>
 #include <string>
+
+// fwd
+namespace yafth::core::engine_detail
+{
+class terminal_buffer;
+}
 
 namespace yafth::core::engine_detail::symbol_manipulator
 {

@@ -1,4 +1,5 @@
 #include <yafth/core/engine_detail/symbol_manipulator.h>
+#include <yafth/core/engine_detail/terminal_buffer.h>
 
 namespace yafth::core::engine_detail::symbol_manipulator::_internal
 {

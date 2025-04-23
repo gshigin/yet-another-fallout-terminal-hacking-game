@@ -18,15 +18,13 @@ namespace yafth::core
 class engine
 {
   public:
-    engine(lock_level lock_level_setting, uint32_t player_science_skill, uint64_t seed);
-    engine() : engine(lock_level::average, 50, 0){};
+    engine(lock_level lock_level_setting, uint32_t player_science_skill, uint64_t seed) noexcept;
+    engine() noexcept : engine(lock_level::average, 50, 0){};
 
-    auto process_input(input input) -> state;
+    auto process_input(input input) noexcept -> state;
 
   private:
-    [[nodiscard]] auto check_coords(screen_coords coords) const -> std::optional<std::size_t>;
-    [[nodiscard]] auto look_at(std::size_t i) const -> highlight;
-    auto click_at(std::size_t i) -> click_status;
+    [[nodiscard]] auto check_coords(screen_coords coords) const noexcept -> std::optional<std::size_t>;
 
     util::xorshift32 rng_;
     engine_detail::word_repository words_;
