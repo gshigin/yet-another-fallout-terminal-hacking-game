@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.21)
 
 project(yafth
-  VERSION 0.3.2
+  VERSION 0.4.0
   LANGUAGES CXX
 )
 
@@ -30,7 +30,8 @@ endif()
 # Build
 file(GLOB_RECURSE LIB_SOURCES
     src/app/*.cpp
-    src/core/*.cpp
+    src/core/*.cpp 
+    src/core/engine_detail/*.cpp
     src/ui/*.cpp
     src/util/*.cpp
 )
@@ -42,9 +43,7 @@ add_executable(${PROJECT_NAME}
   src/main.cpp
 )
 
-target_link_libraries(${PROJECT_NAME}-lib
-  PRIVATE ftxui::screen
-  PRIVATE ftxui::dom
+target_link_libraries(${PROJECT_NAME}-lib 
   PRIVATE ftxui::component
 )
 

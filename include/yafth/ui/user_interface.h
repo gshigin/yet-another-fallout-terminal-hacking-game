@@ -1,14 +1,13 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
-
+// yafth
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
-
+// ftxui
 #include <ftxui/component/component.hpp>
-
-#include <iomanip>
+// stl
 #include <string>
 #include <vector>
 
@@ -19,9 +18,9 @@ class user_interface
     using fcallback_t = std::function<yafth::state(yafth::input)>;
 
   public:
-    user_interface(const fcallback_t &callback, std::uint64_t seed);
+    user_interface(fcallback_t callback, std::uint64_t seed);
 
-    ftxui::Component create();
+    auto create() -> ftxui::Component;
 
   private:
     void update_internals_();

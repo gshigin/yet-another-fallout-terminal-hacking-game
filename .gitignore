@@ -1,3 +1,4 @@
 # ignore build folder
 build/*
 .vscode/*
+.cache/*

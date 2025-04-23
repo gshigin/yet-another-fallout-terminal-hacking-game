@@ -1,25 +1,25 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
-
-#include <optional>
-#include <string>
-
+// yafth
 #include <yafth/core/terminal_layout.h>
+// stl
+#include <optional>
+#include <string_view>
 
 namespace yafth::inline types
 {
-enum class lock_level
+enum class lock_level : uint8_t
 {
-    very_easy = 0,
-    easy = 1,
-    average = 2,
-    hard = 3,
-    very_hard = 4
+    very_easy,
+    easy,
+    average,
+    hard,
+    very_hard
 };
 
-enum class input_type
+enum class input_type : uint8_t
 {
     look,
     click,
@@ -68,7 +68,7 @@ struct click_status
 
 struct state
 {
-    std::string term_chars; // all current mutable characters
+    std::string_view term_chars; // all current mutable characters
     std::size_t attempts_left;
     std::optional<highlight> highlighted;
     std::optional<click_status> click_res; // if click occured

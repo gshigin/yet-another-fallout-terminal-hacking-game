@@ -1,13 +1,16 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
-
+// stl
+#include <climits>
 #include <cstdint>
+#include <limits>
 
 namespace yafth::util
 {
-constexpr uint64_t seed(const uint64_t seed_)
+
+constexpr auto seed(const uint64_t seed_) -> uint64_t
 {
     uint64_t shifted = seed_;
 
@@ -19,60 +22,50 @@ constexpr uint64_t seed(const uint64_t seed_)
 }
 
 // uses time of compilation for seeding rng
-constexpr uint64_t seed()
+constexpr auto seed_time() -> uint64_t
 {
     uint64_t shifted = 0;
-    for (const auto c : __TIME__)
+    for (char c : __TIME__)
     {
-        shifted <<= 8;
+        shifted <<= CHAR_BIT;
         shifted |= c;
     }
 
     return seed(shifted);
 }
 
-struct xoroshiro128
+struct xorshift32
 {
-    std::uint64_t state[2]{1, 1};
+    uint32_t state;
 
-    xoroshiro128() = default;
-
-    constexpr xoroshiro128(uint64_t s0, uint64_t s1) : state{s0, s1}
+    constexpr auto next() noexcept -> uint32_t
     {
+        uint32_t x = state;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        return (state = x);
     }
 
-    // or c++20 std::rotl
-    constexpr static inline uint64_t rotl(const uint64_t x, int k)
-    {
-        return (x << k) | (x >> (64 - k));
-    }
-
-    constexpr std::uint64_t next() noexcept
-    {
-        const auto s0 = state[0];
-        auto s1 = state[1];
-        const auto result = rotl(s0 + s1, 17) + s0;
-
-        s1 ^= s0;
-        state[0] = rotl(s0, 49) ^ s1 ^ (s1 << 21);
-        state[1] = rotl(s1, 28);
-
-        return result >> 4;
-    }
-
-    template <typename T> constexpr T next_t() noexcept
-    {
-        return static_cast<T>(next());
-    }
-
-    constexpr std::uint64_t operator()() noexcept
+    constexpr auto operator()() noexcept -> uint32_t
     {
         return next();
     }
 
-    constexpr xoroshiro128 fork()
+    constexpr auto fork() noexcept -> xorshift32
     {
-        return xoroshiro128{next(), next()};
+        return xorshift32{next()};
     }
+
+    static constexpr auto min() noexcept -> uint32_t
+    {
+        return 0;
+    }
+    static constexpr auto max() noexcept -> uint32_t
+    {
+        return std::numeric_limits<uint32_t>::max();
+    }
+    using result_type = uint32_t;
 };
+
 } // namespace yafth::util

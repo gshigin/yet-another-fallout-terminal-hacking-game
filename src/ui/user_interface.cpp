@@ -1,15 +1,18 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
+// yafth
 #include <yafth/ui/user_interface.h>
-
+// ftxui
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+// stl
+#include <iomanip>
+#include <utility>
 
 namespace yafth::ui
 {
-user_interface::user_interface(const fcallback_t &callback, std::uint64_t seed)
-    : callback_(callback), start_hex_(util::seed(seed))
+user_interface::user_interface(fcallback_t callback, std::uint64_t seed) : callback_(std::move(callback)), start_hex_(util::seed(seed))
 {
     terminal_state_ = callback_(input{input_type::other, {}});
 }
@@ -130,22 +133,15 @@ ftxui::Component user_interface::create()
 
             auto interaction_window =
                 ftxui::hbox({
-                    hex_window_1 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
-                                               terminal_layout::interaction_window::hex_window_1::width),
+                    hex_window_1 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::interaction_window::hex_window_1::width),
                     ftxui::text(" "),
-                    interactive_window_1 |
-                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
-                                    terminal_layout::interaction_window::interactive_window_1::width),
+                    interactive_window_1 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::interaction_window::interactive_window_1::width),
                     ftxui::text(" "),
-                    hex_window_2 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
-                                               terminal_layout::interaction_window::hex_window_2::width),
+                    hex_window_2 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::interaction_window::hex_window_2::width),
                     ftxui::text(" "),
-                    interactive_window_2 |
-                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
-                                    terminal_layout::interaction_window::interactive_window_2::width),
+                    interactive_window_2 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::interaction_window::interactive_window_2::width),
                     ftxui::text(" "),
-                    log_window |
-                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::interaction_window::log_window::width),
+                    log_window | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::interaction_window::log_window::width),
                 }) |
                 ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, terminal_layout::interaction_window::height);
 
@@ -153,8 +149,8 @@ ftxui::Component user_interface::create()
                        attempts_window,
                        interaction_window,
                    }) |
-                   ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::width) |
-                   ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, terminal_layout::height) | ftxui::border;
+                   ftxui::size(ftxui::WIDTH, ftxui::EQUAL, terminal_layout::width) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, terminal_layout::height) |
+                   ftxui::border;
         }),
         [this](ftxui::Event event) {
             if (event == ftxui::Event::Custom) // custom event - game over
@@ -167,8 +163,7 @@ ftxui::Component user_interface::create()
                 auto m_x = event.mouse().x;
                 auto m_y = event.mouse().y;
 
-                if (event.mouse().button == ftxui::Mouse::Left &&
-                    event.mouse().motion == ftxui::Mouse::Released) // clicked left button
+                if (event.mouse().button == ftxui::Mouse::Left && event.mouse().motion == ftxui::Mouse::Released) // clicked left button
                 {
                     terminal_state_ = callback_(input{input_type::click, screen_coords{m_x, m_y}});
                     update_internals_();
@@ -241,9 +236,8 @@ void user_interface::update_internals_()
     {
         if (terminal_state_.highlighted.has_value())
         {
-            last_loocked_ = terminal_state_.term_chars.substr(terminal_state_.highlighted->begin,
-                                                              terminal_state_.highlighted->end -
-                                                                  terminal_state_.highlighted->begin);
+            last_loocked_ =
+                terminal_state_.term_chars.substr(terminal_state_.highlighted->begin, terminal_state_.highlighted->end - terminal_state_.highlighted->begin);
         }
         else
         {

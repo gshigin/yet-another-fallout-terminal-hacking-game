@@ -1,15 +1,15 @@
-// Copyright 2024 Gleb Shigin. All rights reserved.
+// Copyright 2024-2025 Gleb Shigin. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
-#include <iostream>
+// yafth
 #include <yafth/app/application.h>
 #include <yafth/util/args.h>
-
-#include <memory>
+// stl
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
-    yafth::args arguments;
+    yafth::args arguments{};
     try
     {
         arguments = yafth::util::argparser::parse(argc, argv);
