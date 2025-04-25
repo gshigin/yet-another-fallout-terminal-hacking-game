@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <fstream>
+#include <iomanip>
+#include <ios>
 #include <iostream>
 #include <random>
 #include <string>
@@ -24,7 +27,7 @@ std::vector<std::string> load_words(const std::string &filename, int word_length
 
     if (!in)
     {
-        std::cerr << "Ошибка: не удалось открыть файл " << filename << "\n";
+        std::cerr << "Error: Unable to open file: " << filename << "\n";
         return words;
     }
 
@@ -55,7 +58,7 @@ bool flexible_dfs(const std::string &current, const std::vector<std::string> &al
             candidates.emplace_back(diff, word);
     }
 
-    std::sort(candidates.begin(), candidates.end()); // сначала те, кто ближе
+    std::sort(candidates.begin(), candidates.end());
 
     for (const auto &[diff, word] : candidates)
     {
@@ -334,6 +337,13 @@ int main()
     {
         std::cout << "Decoded chain not qual to original!\n";
     }
+
+    for (auto byte : compressed_cahin)
+    {
+
+        std::cout << "0x" << std::uppercase << std::setw(2) << std::hex << std::uintptr_t(byte) << std::setfill('0') << ", ";
+    }
+    std::cout << '\n';
 
     return 0;
 }
