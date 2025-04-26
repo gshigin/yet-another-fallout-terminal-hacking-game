@@ -4,6 +4,7 @@
 // yafth
 #include <yafth/core/engine_detail/word_repository.h>
 // stl
+#include <algorithm>
 #include <cassert>
 
 namespace yafth::core::engine_detail
