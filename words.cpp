@@ -278,72 +278,57 @@ std::vector<std::string> decode_chain_compact(const std::vector<uint8_t> &data)
 int main()
 {
     std::string filename = "words_alpha.txt";
-    int word_length = 12;
-    int target_chain_length = 50;
     int max_diff = 3;
     int num_chains = 1;
 
-    std::vector<std::string> words = load_words(filename, word_length);
-    if (words.empty())
+    std::mt19937 rng(42);
+
+    for (int word_length = 4; word_length <= 12; ++word_length)
     {
-        std::cerr << "No words loaded.\n";
-        return 1;
-    }
-
-    std::cout << "Loaded " << words.size() << " words of length " << word_length << ".\n";
-
-    std::vector<std::string> chain;
-    std::unordered_set<std::string> used_words;
-
-    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-    std::shuffle(words.begin(), words.end(), rng);
-
-    for (const std::string &start : words)
-    {
-        if (used_words.count(start))
-            continue;
-
-        std::unordered_set<std::string> visited{start};
-        std::vector<std::string> path{start};
-
-        if (flexible_dfs(start, words, visited, path, target_chain_length, max_diff))
+        std::vector<std::string> words = load_words(filename, word_length);
+        if (words.empty())
         {
-            chain = path;
-            for (const auto &w : path)
-                used_words.insert(w);
+            std::cerr << "No words loaded.\n";
+            return 1;
+        }
 
-            break;
+        std::vector<std::string> chain;
+        for (int target_chain_length = 10; target_chain_length != 100; ++target_chain_length)
+        {
+            std::shuffle(words.begin(), words.end(), rng);
+
+            std::unordered_set<std::string> used_words;
+
+            for (const std::string &start : words)
+            {
+                if (used_words.count(start))
+                    continue;
+
+                std::unordered_set<std::string> visited{start};
+                std::vector<std::string> path{start};
+
+                if (flexible_dfs(start, words, visited, path, target_chain_length, max_diff))
+                {
+                    chain = path;
+                    for (const auto &w : path)
+                        used_words.insert(w);
+
+                    break;
+                }
+            }
+            auto encoded = encode_chain_compact(chain);
+            if (encoded.size() == 128)
+            {
+                std::cout << "constexpr static std::array<uint8_t, " << encoded.size() << "> words_len_" << word_length << " = {";
+                for (auto byte : encoded)
+                {
+                    std::cout << "0x" << std::uppercase << std::setw(2) << std::hex << std::setfill('0') << uintptr_t(byte) << std::dec << ", ";
+                }
+                std::cout << "};\n";
+                break;
+            }
         }
     }
-
-    int chain_size = 0;
-    for (auto &word : chain)
-    {
-        chain_size += sizeof(word) + word.size();
-    }
-    chain_size += sizeof(chain);
-
-    std::cout << "Uncopressed chain size : " << chain_size << '\n';
-
-    auto compressed_cahin = encode_chain_compact(chain);
-
-    chain_size = sizeof(compressed_cahin) + compressed_cahin.size();
-
-    std::cout << "Copressed chain size : " << chain_size << '\n';
-
-    auto decoded_chain = decode_chain_compact(compressed_cahin);
-
-    if (chain != decoded_chain)
-    {
-        std::cout << "Decoded chain not qual to original!\n";
-    }
-
-    for (auto byte : compressed_cahin)
-    {
-
-        std::cout << "0x" << std::uppercase << std::setw(2) << std::hex << std::uintptr_t(byte) << std::setfill('0') << ", ";
-    }
-    std::cout << '\n';
 
     return 0;
 }
