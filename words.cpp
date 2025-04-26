@@ -1,73 +1,163 @@
 #include <algorithm>
-#include <chrono>
+#include <bitset>
+#include <cassert>
 #include <cstdint>
 #include <fstream>
-#include <iomanip>
 #include <ios>
 #include <iostream>
 #include <random>
 #include <string>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
-int letter_difference(const std::string &a, const std::string &b)
+constexpr int MAX_WORDS = 65536;
+
+int diff_packed_words(uint64_t a, uint64_t b)
 {
+    assert(((a >> 60) & 0xF) == ((b >> 60) & 0xF));
+
+    uint64_t x = (a ^ b);
+    int len = (a >> 60) & 0xF;
+    x >>= (12 - len) * 5;
+
     int diff = 0;
-    for (size_t i = 0; i < a.size(); ++i)
-        if (a[i] != b[i])
+    for (int i = 0; i < len; ++i)
+    {
+        if ((x & 0x1F))
             ++diff;
+        x >>= 5;
+    }
     return diff;
 }
 
-std::vector<std::string> load_words(const std::string &filename, int word_length)
+std::vector<std::pair<int, char>> get_packed_words_diffs(uint64_t a, uint64_t b)
 {
-    std::ifstream in(filename);
-    std::string word;
-    std::vector<std::string> words;
+    assert(((a >> 60) & 0xF) == ((b >> 60) & 0xF));
 
-    if (!in)
+    int len = (a >> 60) & 0xF;
+    int shift = (12 - len) * 5;
+
+    a >>= shift;
+    b >>= shift;
+
+    std::vector<std::pair<int, char>> diffs;
+
+    for (int pos = 0; pos < len; ++pos)
     {
-        std::cerr << "Error: Unable to open file: " << filename << "\n";
-        return words;
+        int char_a = (a >> (5 * (len - pos - 1))) & 0x1F;
+        int char_b = (b >> (5 * (len - pos - 1))) & 0x1F;
+
+        if (char_a != char_b)
+        {
+            diffs.emplace_back(pos, 'a' + char_b);
+        }
     }
 
-    while (in >> word)
-    {
-        if ((int)word.length() == word_length)
-            words.push_back(word);
-    }
-
-    return words;
+    return diffs;
 }
 
-bool flexible_dfs(const std::string &current, const std::vector<std::string> &all_words, std::unordered_set<std::string> &visited,
-                  std::vector<std::string> &path, int target_length, int max_diff)
+uint64_t pack_word(std::string_view word)
 {
+    uint64_t result = word.size() & 0xF;
+    for (char c : word)
+    {
+        result <<= 5;
+        result |= (c - 'a') & 0x1F;
+    }
 
+    int padding = (12 - word.size()) * 5;
+    result <<= padding;
+    return result;
+}
+
+std::string unpack_word(uint64_t packed)
+{
+    int len = (packed >> 60) & 0xF;
+    std::string word(len, 'a');
+
+    int shift = 60 - 5;
+    for (char &c : word)
+    {
+        c += (packed >> shift) & 0x1F;
+        shift -= 5;
+    }
+    return word;
+}
+
+std::string_view getword(const char *&_str, const char *end)
+{
+    const char *str = _str;
+    while (*str == '\n' || *str == '\r')
+    {
+        if (++str == end)
+            return (_str = str), std::string_view{};
+    }
+
+    const char *start = str;
+    while (str != end && *str != '\n' && *str != '\r')
+        ++str;
+
+    _str = str;
+    return std::string_view{start, str};
+}
+
+std::unordered_map<uint32_t, std::vector<uint64_t>> load_words(const std::string &filename)
+{
+    std::ifstream in(filename);
+    std::vector<char> buf;
+
+    in.seekg(0, std::ios::end);
+    buf.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&buf[0], buf.size());
+
+    const char *str = &buf[0];
+    const char *strEnd = str + buf.size();
+
+    std::string_view word;
+    std::unordered_map<uint32_t, std::vector<uint64_t>> ans;
+
+    while (!(word = getword(str, strEnd)).empty())
+    {
+        const auto size = word.size();
+        if (size < 4 || size > 12)
+            continue;
+        ans[size].push_back(pack_word(word));
+    }
+
+    return ans;
+}
+
+bool flexible_dfs(uint16_t current_idx, const std::vector<uint64_t> &words, std::bitset<MAX_WORDS> &visited, std::vector<uint16_t> &path, int target_length,
+                  int max_diff)
+{
     if ((int)path.size() >= target_length)
         return true;
 
-    std::vector<std::pair<int, std::string>> candidates;
+    std::vector<std::pair<int, uint16_t>> candidates;
 
-    for (const auto &word : all_words)
+    const uint64_t current_word = words[current_idx];
+
+    for (uint16_t idx = 0; idx < words.size(); ++idx)
     {
-        if (visited.count(word))
+        if (visited[idx])
             continue;
-        int diff = letter_difference(current, word);
+
+        int diff = diff_packed_words(current_word, words[idx]);
         if (diff > 0 && diff <= max_diff)
-            candidates.emplace_back(diff, word);
+            candidates.emplace_back(diff, idx);
     }
 
-    std::sort(candidates.begin(), candidates.end());
+    // std::sort(candidates.begin(), candidates.end());
 
-    for (const auto &[diff, word] : candidates)
+    for (const auto &[diff, idx] : candidates)
     {
-        visited.insert(word);
-        path.push_back(word);
-        if (flexible_dfs(word, all_words, visited, path, target_length, max_diff))
+        visited[idx] = true;
+        path.push_back(idx);
+        if (flexible_dfs(idx, words, visited, path, target_length, max_diff))
             return true;
         path.pop_back();
-        visited.erase(word);
+        visited[idx] = false;
     }
 
     return false;
@@ -164,45 +254,17 @@ int get_position_bits(int word_len)
     return 5;
 }
 
-uint64_t pack_word(const std::string &word)
-{
-    uint64_t result = word.size() & 0xF;
-    for (char c : word)
-    {
-        result <<= 5;
-        result |= (c - 'a') & 0x1F;
-    }
-
-    int padding = (12 - word.size()) * 5;
-    result <<= padding;
-    return result;
-}
-
-std::string unpack_word(uint64_t packed)
-{
-    int len = (packed >> 60) & 0xF;
-    std::string word(len, 'a');
-
-    int shift = 60 - 5;
-    for (char &c : word)
-    {
-        c += (packed >> shift) & 0x1F;
-        shift -= 5;
-    }
-    return word;
-}
-
 // ------------------------- Encoding -------------------------
-std::vector<uint8_t> encode_chain_compact(const std::vector<std::string> &chain)
+std::vector<uint8_t> encode_chain_compact_packed(const std::vector<uint64_t> &chain)
 {
     if (chain.empty())
         throw std::invalid_argument("Empty chain");
 
-    const int word_len = chain[0].size();
+    const int word_len = (chain[0] >> 60) & 0xF;
     const int pos_bits = get_position_bits(word_len);
 
     std::vector<uint8_t> buffer;
-    uint64_t packed = pack_word(chain[0]);
+    uint64_t packed = chain[0];
     for (int i = 7; i >= 0; --i)
         buffer.push_back((packed >> (i * 8)) & 0xFF);
 
@@ -211,15 +273,13 @@ std::vector<uint8_t> encode_chain_compact(const std::vector<std::string> &chain)
     BitWriter writer(buffer);
     for (size_t i = 1; i < chain.size(); ++i)
     {
-        const std::string &prev = chain[i - 1];
-        const std::string &curr = chain[i];
-        if (curr.size() != word_len)
+        uint64_t prev = chain[i - 1];
+        uint64_t curr = chain[i];
+
+        if (((prev >> 60) & 0xF) != ((curr >> 60) & 0xF))
             throw std::invalid_argument("Word lengths mismatch");
 
-        std::vector<std::pair<int, char>> diffs;
-        for (int j = 0; j < word_len; ++j)
-            if (prev[j] != curr[j])
-                diffs.emplace_back(j, curr[j]);
+        auto diffs = get_packed_words_diffs(prev, curr);
 
         if (diffs.empty() || diffs.size() > 3)
             throw std::runtime_error("Invalid number of diffs");
@@ -239,7 +299,7 @@ std::vector<uint8_t> encode_chain_compact(const std::vector<std::string> &chain)
 }
 
 // ------------------------- Decoding -------------------------
-std::vector<std::string> decode_chain_compact(const std::vector<uint8_t> &data)
+std::vector<uint64_t> decode_chain_compact_packed(const std::vector<uint8_t> &data)
 {
     if (data.size() < 9)
         throw std::runtime_error("Too short");
@@ -248,28 +308,35 @@ std::vector<std::string> decode_chain_compact(const std::vector<uint8_t> &data)
     for (int i = 0; i < 8; ++i)
         packed = (packed << 8) | data[i];
 
-    std::string first_word = unpack_word(packed);
-    const int word_len = first_word.size();
+    int word_len = (packed >> 60) & 0xF;
     const int pos_bits = get_position_bits(word_len);
 
     BitReader reader(data);
-    reader.read_bits(64); // skip word bits
+    reader.read_bits(64); // skip first 64 bits (word)
     int steps = reader.read_bits(8);
 
-    std::vector<std::string> chain = {first_word};
+    std::vector<uint64_t> chain = {packed};
     for (int i = 0; i < steps; ++i)
     {
-        std::string current = chain.back();
+        uint64_t current = chain.back();
         int code = reader.read_bits(2);
         int count = code == 0b01 ? 1 : code == 0b10 ? 2 : 3;
+
+        int shift_offset = (12 - word_len) * 5;
+        uint64_t body = (current << shift_offset) >> shift_offset; // обнуляем паддинги
 
         for (int j = 0; j < count; ++j)
         {
             int pos = reader.read_bits(pos_bits);
-            char c = 'a' + reader.read_bits(5);
-            current[pos] = c;
+            int letter = reader.read_bits(5);
+
+            int bitpos = (word_len - pos - 1) * 5;
+            body &= ~(uint64_t(0x1F) << bitpos);  // сбросить старую букву
+            body |= (uint64_t(letter) << bitpos); // записать новую букву
         }
-        chain.push_back(current);
+
+        uint64_t new_word = (uint64_t(word_len) << 60) | (body << ((12 - word_len) * 5));
+        chain.push_back(new_word);
     }
 
     return chain;
@@ -278,57 +345,68 @@ std::vector<std::string> decode_chain_compact(const std::vector<uint8_t> &data)
 int main()
 {
     std::string filename = "words_alpha.txt";
-    int max_diff = 3;
-    int num_chains = 1;
 
+    auto all_words = load_words("words_alpha.txt");
+
+    size_t size = sizeof(all_words);
+    for (const auto &[a, b] : all_words)
+    {
+        std::cout << a << " : " << b.size() << '\n';
+        size += sizeof(uint64_t) * b.size();
+    }
+    std::cout << "total size : " << (1.0f * size / 1024 / 1024) << " Mbi\n";
+
+    int target_length = 100;
+    int word_length = 6;
+    int max_diff = 3;
     std::mt19937 rng(42);
 
-    for (int word_length = 4; word_length <= 12; ++word_length)
+    std::bitset<65536> visited;
+    std::vector<uint16_t> path;
+
+    for (auto word_length = 4; word_length <= 12; ++word_length)
     {
-        std::vector<std::string> words = load_words(filename, word_length);
-        if (words.empty())
+
+        auto &words = all_words[word_length];
+        std::shuffle(words.begin(), words.end(), rng);
+
+        for (uint16_t start_idx = 0; start_idx < words.size(); ++start_idx)
         {
-            std::cerr << "No words loaded.\n";
-            return 1;
-        }
+            visited.reset();
+            path.clear();
 
-        std::vector<std::string> chain;
-        for (int target_chain_length = 10; target_chain_length != 100; ++target_chain_length)
-        {
-            std::shuffle(words.begin(), words.end(), rng);
+            visited[start_idx] = true;
+            path.push_back(start_idx);
 
-            std::unordered_set<std::string> used_words;
-
-            for (const std::string &start : words)
+            if (flexible_dfs(start_idx, words, visited, path, target_length, max_diff))
             {
-                if (used_words.count(start))
-                    continue;
-
-                std::unordered_set<std::string> visited{start};
-                std::vector<std::string> path{start};
-
-                if (flexible_dfs(start, words, visited, path, target_chain_length, max_diff))
+                std::cout << "Found path of len " << word_length << " : ";
+                for (auto idx : path)
                 {
-                    chain = path;
-                    for (const auto &w : path)
-                        used_words.insert(w);
+                    auto s = unpack_word(words[idx]);
+                    for (auto &c : s)
+                        c = toupper(c);
 
-                    break;
+                    std::cout << "\"" << s << "\", ";
                 }
-            }
-            auto encoded = encode_chain_compact(chain);
-            if (encoded.size() == 128)
-            {
-                std::cout << "constexpr static std::array<uint8_t, " << encoded.size() << "> words_len_" << word_length << " = {";
-                for (auto byte : encoded)
-                {
-                    std::cout << "0x" << std::uppercase << std::setw(2) << std::hex << std::setfill('0') << uintptr_t(byte) << std::dec << ", ";
-                }
-                std::cout << "};\n";
+                std::cout << "\n\n";
                 break;
             }
         }
     }
+
+    // std::vector<uint64_t> path_words;
+    // path_words.reserve(path.size());
+    // for (auto id : path)
+    // {
+    //     path_words.emplace_back(words[id]);
+    // }
+
+    // std::cout << "Encoded words path alloc : " << sizeof(uint64_t) * path_words.size() << '\n';
+
+    // auto compact_path = encode_chain_compact_packed(path_words);
+
+    // std::cout << "Compact path alloc : " << compact_path.size() << '\n';
 
     return 0;
 }
