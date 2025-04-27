@@ -3,9 +3,11 @@
 #include <cassert>
 #include <cstdint>
 #include <fstream>
+#include <iomanip>
 #include <ios>
 #include <iostream>
 #include <random>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,7 +19,7 @@ int diff_packed_words(uint64_t a, uint64_t b)
     assert(((a >> 60) & 0xF) == ((b >> 60) & 0xF));
 
     uint64_t x = (a ^ b);
-    int len = (a >> 60) & 0xF;
+    int len = static_cast<int>((a >> 60) & 0xF);
     x >>= (12 - len) * 5;
 
     int diff = 0;
@@ -255,16 +257,16 @@ int get_position_bits(int word_len)
 }
 
 // ------------------------- Encoding -------------------------
-std::vector<uint8_t> encode_chain_compact_packed(const std::vector<uint64_t> &chain)
+std::vector<uint8_t> encode_chain_compact_packed(const std::vector<uint16_t> &chain, const std::vector<uint64_t> &words)
 {
     if (chain.empty())
         throw std::invalid_argument("Empty chain");
 
-    const int word_len = (chain[0] >> 60) & 0xF;
+    const int word_len = (words[chain[0]] >> 60) & 0xF;
     const int pos_bits = get_position_bits(word_len);
 
     std::vector<uint8_t> buffer;
-    uint64_t packed = chain[0];
+    uint64_t packed = words[chain[0]];
     for (int i = 7; i >= 0; --i)
         buffer.push_back((packed >> (i * 8)) & 0xFF);
 
@@ -273,8 +275,8 @@ std::vector<uint8_t> encode_chain_compact_packed(const std::vector<uint64_t> &ch
     BitWriter writer(buffer);
     for (size_t i = 1; i < chain.size(); ++i)
     {
-        uint64_t prev = chain[i - 1];
-        uint64_t curr = chain[i];
+        uint64_t prev = words[chain[i - 1]];
+        uint64_t curr = words[chain[i]];
 
         if (((prev >> 60) & 0xF) != ((curr >> 60) & 0xF))
             throw std::invalid_argument("Word lengths mismatch");
@@ -323,7 +325,7 @@ std::vector<uint64_t> decode_chain_compact_packed(const std::vector<uint8_t> &da
         int count = code == 0b01 ? 1 : code == 0b10 ? 2 : 3;
 
         int shift_offset = (12 - word_len) * 5;
-        uint64_t body = (current << shift_offset) >> shift_offset; // обнуляем паддинги
+        uint64_t body = current >> shift_offset; // обнуляем паддинги
 
         for (int j = 0; j < count; ++j)
         {
@@ -335,78 +337,136 @@ std::vector<uint64_t> decode_chain_compact_packed(const std::vector<uint8_t> &da
             body |= (uint64_t(letter) << bitpos); // записать новую букву
         }
 
-        uint64_t new_word = (uint64_t(word_len) << 60) | (body << ((12 - word_len) * 5));
+        uint64_t new_word = (uint64_t(word_len) << 60) | (body << shift_offset);
         chain.push_back(new_word);
     }
 
     return chain;
 }
 
-int main()
+std::string generate_header_file(std::unordered_map<uint32_t, std::vector<uint64_t>> &all_words, uint32_t seed, const std::string &header_output_path)
 {
-    std::string filename = "words_alpha.txt";
+    std::mt19937 rng(seed);
+    std::ofstream header_file(header_output_path);
 
-    auto all_words = load_words("words_alpha.txt");
-
-    size_t size = sizeof(all_words);
-    for (const auto &[a, b] : all_words)
+    if (!header_file.is_open())
     {
-        std::cout << a << " : " << b.size() << '\n';
-        size += sizeof(uint64_t) * b.size();
+        std::cerr << "Failed to open header output file" << std::endl;
+        return "Error opening header file";
     }
-    std::cout << "total size : " << (1.0f * size / 1024 / 1024) << " Mbi\n";
 
-    int target_length = 100;
-    int word_length = 6;
-    int max_diff = 3;
-    std::mt19937 rng(42);
+    header_file << "#pragma once\n\n";
+
+    header_file << "#include <array>\n";
+    header_file << "#include <cstdint>\n";
+
+    header_file << "namespace yafth::core::engine_detail::words {\n\n";
 
     std::bitset<65536> visited;
     std::vector<uint16_t> path;
+    std::vector<uint8_t> compact_path;
 
-    for (auto word_length = 4; word_length <= 12; ++word_length)
+    for (int word_length = 4; word_length <= 12; ++word_length)
     {
+        std::cout << "Chain of length " << word_length << " generation started\n";
 
-        auto &words = all_words[word_length];
+        auto &words = all_words[word_length]; // Assuming that words are loaded by length
         std::shuffle(words.begin(), words.end(), rng);
 
-        for (uint16_t start_idx = 0; start_idx < words.size(); ++start_idx)
+        for (int target_length = 100; target_length != 0; --target_length)
         {
-            visited.reset();
-            path.clear();
+            size_t cnt = 0;
 
-            visited[start_idx] = true;
-            path.push_back(start_idx);
-
-            if (flexible_dfs(start_idx, words, visited, path, target_length, max_diff))
+            for (uint16_t start_idx = 0; start_idx < words.size(); ++start_idx)
             {
-                std::cout << "Found path of len " << word_length << " : ";
-                for (auto idx : path)
-                {
-                    auto s = unpack_word(words[idx]);
-                    for (auto &c : s)
-                        c = toupper(c);
+                visited.reset();
+                path.clear();
+                compact_path.clear();
 
-                    std::cout << "\"" << s << "\", ";
+                visited[start_idx] = true;
+                path.push_back(start_idx);
+
+                if (flexible_dfs(start_idx, words, visited, path, target_length, 3))
+                {
+                    compact_path = encode_chain_compact_packed(path, words);
+
+                    if (compact_path.size() == 128)
+                        break;
+
+                    if (compact_path.size() > 140)
+                        break;
+
+                    ++cnt;
+                    if (cnt == 25)
+                        break;
                 }
-                std::cout << "\n\n";
+            }
+            if (compact_path.size() == 128)
+            {
+                auto decoded = decode_chain_compact_packed(compact_path);
+                std::cout << "Chain of length " << word_length << " generated\n";
+
+                std::vector<uint64_t> ref;
+                ref.reserve(path.size());
+                for (auto id : path)
+                {
+                    ref.emplace_back(words[id]);
+                }
+
+                if (ref != decoded)
+                {
+                    throw std::runtime_error("Chain validation error!");
+                }
+                else
+                {
+                    std::cout << "Chain of length " << word_length << " validated\n";
+                }
+
+                std::cout << "Chain of length " << word_length << " : ";
+                for (auto w : decoded)
+                {
+                    std::cout << unpack_word(w) << ' ';
+                }
+                std::cout << '\n';
+
+                header_file << "constexpr static std::array<uint8_t, 128> packed_word_" << std::dec << word_length << std::hex << " = { ";
+
+                for (size_t i = 0; i < compact_path.size(); ++i)
+                {
+                    header_file << "0x" << std::setw(2) << std::setfill('0') << std::hex << (int)compact_path[i];
+                    if (i < compact_path.size() - 1)
+                        header_file << ", ";
+                }
+
+                header_file << " };\n";
                 break;
             }
         }
     }
 
-    // std::vector<uint64_t> path_words;
-    // path_words.reserve(path.size());
-    // for (auto id : path)
-    // {
-    //     path_words.emplace_back(words[id]);
-    // }
+    header_file << "\n} // namespace yafth::core::engine_detail::words\n";
+    header_file.close();
+    return "Header file generated successfully.";
+}
 
-    // std::cout << "Encoded words path alloc : " << sizeof(uint64_t) * path_words.size() << '\n';
+int main(int argc, char *argv[])
+{
+    if (argc != 4)
+    {
+        std::cerr << "Usage: " << argv[0] << " <word dictionary path> <header output path> <random seed>" << std::endl;
+        return 1;
+    }
 
-    // auto compact_path = encode_chain_compact_packed(path_words);
+    std::string dictionary_path = argv[1];
+    std::string header_output_path = argv[2];
+    uint32_t seed = std::stoi(argv[3]);
 
-    // std::cout << "Compact path alloc : " << compact_path.size() << '\n';
+    // Load words from dictionary (use the `load_words` function from your original code)
+    auto all_words = load_words(dictionary_path);
 
+    // Generate header file
+    std::string result = generate_header_file(all_words, seed, header_output_path);
+
+    std::cout << result << std::endl;
     return 0;
 }
