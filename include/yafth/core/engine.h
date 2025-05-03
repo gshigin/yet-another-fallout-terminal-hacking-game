@@ -3,15 +3,11 @@
 // the LICENSE file.
 #pragma once
 // yafth
-#include <yafth/core/engine_detail/game_state.h>
-#include <yafth/core/engine_detail/terminal_buffer.h>
-#include <yafth/core/engine_detail/word_repository.h>
-#include <yafth/core/terminal_layout.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
 #include <cstdint>
-#include <optional>
+#include <memory>
 
 namespace yafth::core
 {
@@ -21,14 +17,18 @@ class engine
     engine(lock_level lock_level_setting, uint32_t player_science_skill, uint64_t seed) noexcept;
     engine() noexcept : engine(lock_level::average, 50, 0){};
 
+    ~engine();
+
+    engine(engine const &) = delete;
+    auto operator=(engine const &) -> engine & = delete;
+
+    engine(engine &&) noexcept = delete;
+    auto operator=(engine &&) noexcept -> engine & = delete;
+
     auto process_input(input input) noexcept -> state;
 
   private:
-    [[nodiscard]] auto check_coords(screen_coords coords) const noexcept -> std::optional<std::size_t>;
-
-    util::xorshift32 rng_;
-    engine_detail::word_repository words_;
-    engine_detail::terminal_buffer terminal_;
-    engine_detail::game_state state_;
+    struct impl;
+    std::unique_ptr<impl> pimpl_;
 };
 } // namespace yafth::core

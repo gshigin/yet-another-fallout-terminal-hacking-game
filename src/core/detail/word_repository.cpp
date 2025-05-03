@@ -2,14 +2,15 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
-#include <yafth/core/engine_detail/word_repository.h>
+#include "word_repository.hpp"
 // stl
+#include <algorithm>
 #include <cassert>
 
-namespace yafth::core::engine_detail
+namespace yafth::core::detail
 {
 
-void word_repository::init(std::size_t word_length, std::size_t word_count, std::size_t answer_index, std::array<uint16_t, 20> offsets)
+void word_repository::init(std::size_t word_length, std::size_t word_count, std::size_t answer_index, std::array<uint16_t, 20> offsets) noexcept
 {
     assert(4 <= word_length && word_length <= 12);
     assert(5 <= word_count && word_count <= 20);
@@ -79,4 +80,4 @@ auto word_repository::is_removed(std::size_t offset) const noexcept -> bool
     }
     return false;
 }
-} // namespace yafth::core::engine_detail
+} // namespace yafth::core::detail

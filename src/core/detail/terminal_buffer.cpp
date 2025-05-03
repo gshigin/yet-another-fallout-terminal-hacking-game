@@ -2,12 +2,12 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
-#include <yafth/core/engine_detail/terminal_buffer.h>
+#include "terminal_buffer.hpp"
 // stl
 #include <algorithm>
 #include <cassert>
 
-namespace yafth::core::engine_detail
+namespace yafth::core::detail
 {
 auto terminal_buffer::get(size_t index) const noexcept -> char
 {
@@ -55,4 +55,4 @@ auto terminal_buffer::raw() const noexcept -> const std::array<char, kSize> &
 {
     return chars_;
 }
-} // namespace yafth::core::engine_detail
+} // namespace yafth::core::detail

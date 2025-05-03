@@ -7,13 +7,13 @@
 #include <bitset>
 #include <cstddef>
 
-namespace yafth::core::engine_detail
+namespace yafth::core::detail
 {
 
 class word_repository
 {
   public:
-    void init(std::size_t word_length, std::size_t word_count, std::size_t answer_index, std::array<uint16_t, 20> offsets);
+    void init(std::size_t word_length, std::size_t word_count, std::size_t answer_index, std::array<uint16_t, 20> offsets) noexcept;
 
     [[nodiscard]] auto word_length() const noexcept -> std::size_t;
     [[nodiscard]] auto word_count() const noexcept -> std::size_t;
@@ -37,4 +37,4 @@ class word_repository
     uint8_t word_count_{};
 };
 
-} // namespace yafth::core::engine_detail
+} // namespace yafth::core::detail
