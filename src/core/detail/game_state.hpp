@@ -5,7 +5,7 @@
 // stl
 #include <bitset>
 
-namespace yafth::core::engine_detail
+namespace yafth::core::detail
 {
 
 class game_state
@@ -29,4 +29,4 @@ class game_state
     bool game_over_ = false;
 };
 
-} // namespace yafth::core::engine_detail
+} // namespace yafth::core::detail

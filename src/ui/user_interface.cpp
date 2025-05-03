@@ -2,6 +2,7 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
+#include <yafth/core/terminal_layout.h>
 #include <yafth/ui/user_interface.h>
 // ftxui
 #include <ftxui/component/component.hpp>

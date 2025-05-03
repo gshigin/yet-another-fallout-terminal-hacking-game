@@ -2,9 +2,12 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
+#include "detail/game_state.hpp"
+#include "detail/interaction_logic.hpp"
+#include "detail/symbol_manipulator.hpp"
+#include "detail/terminal_buffer.hpp"
+#include "detail/word_repository.hpp"
 #include <yafth/core/engine.h>
-#include <yafth/core/engine_detail/interaction_logic.h>
-#include <yafth/core/engine_detail/symbol_manipulator.h>
 #include <yafth/core/types.h>
 #include <yafth/util/random.h>
 // stl
@@ -52,75 +55,96 @@ inline auto compute_word_length(yafth::lock_level lock_level_setting, URBG &&g) 
 
 namespace yafth::core
 {
-engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0) noexcept
-    : rng_{static_cast<uint32_t>(util::seed(seed))}
+
+struct engine::impl
 {
-    engine_detail::symbol_manipulator::generate_term_chars(terminal_, rng_);
+    impl(lock_level lock_level_setting, uint32_t player_science_skill, uint64_t seed) noexcept : rng{static_cast<uint32_t>(util::seed(seed))}
+    {
+        detail::symbol_manipulator::generate_term_chars(terminal, rng);
 
-    const std::size_t word_length = compute_word_length(lock_level_setting, rng_);
-    const std::size_t word_count = compute_word_count(lock_level_setting, player_science_skill);
+        const std::size_t word_length = compute_word_length(lock_level_setting, rng);
+        const std::size_t word_count = compute_word_count(lock_level_setting, player_science_skill);
 
-    const std::array<std::string, 20> word_list = engine_detail::symbol_manipulator::generate_words(word_length, word_count, rng_);
-    const std::size_t answer_index = rng_.next() % word_count;
-    const std::array<uint16_t, 20> offsets = engine_detail::symbol_manipulator::place_words(terminal_, word_list, word_length, word_count, rng_);
+        const std::array<std::string, 20> word_list = detail::symbol_manipulator::generate_words(word_length, word_count, rng);
+        const std::size_t answer_index = rng.next() % word_count;
+        const std::array<uint16_t, 20> offsets = detail::symbol_manipulator::place_words(terminal, word_list, word_length, word_count, rng);
 
-    words_.init(word_length, word_count, answer_index, offsets);
+        words.init(word_length, word_count, answer_index, offsets);
+    }
+
+    auto check_coords(screen_coords coords) const noexcept -> std::optional<std::size_t>
+    {
+        auto m_x = coords.x;
+        auto m_y = coords.y;
+
+        if ((8 <= m_x && m_x <= 19) && (6 <= m_y && m_y <= 22)) // first window
+        {
+            m_x -= 8;
+            m_y -= 6;
+        }
+        else if ((28 <= m_x && m_x <= 39) && (6 <= m_y && m_y <= 22)) // second window
+        {
+            m_x -= 28;
+            m_y -= 6;
+            m_y += 17;
+        }
+        else
+        {
+            return std::nullopt;
+        }
+        return 12 * m_y + m_x;
+    }
+
+    auto process_input(input current_input) noexcept -> state
+    {
+        std::optional<std::size_t> internal_coord;
+        if (current_input.coords.has_value())
+        {
+            internal_coord = check_coords(*current_input.coords);
+        }
+        switch (current_input.type)
+        {
+        case input_type::other: // do nothing, return current state
+            return {terminal.view(), state.attempts_left(), {}, {}};
+            break;
+        case input_type::look:
+            if (internal_coord.has_value())
+            {
+                auto hl = detail::interaction_logic::look_at(*internal_coord, terminal, state);
+                return {terminal.view(), state.attempts_left(), hl, std::nullopt};
+            }
+            return {terminal.view(), state.attempts_left(), std::nullopt, {}};
+            break;
+        case input_type::click:
+            if (internal_coord.has_value())
+            {
+                auto click_res = detail::interaction_logic::click_at(*internal_coord, terminal, words, state, rng);
+                return {terminal.view(), state.attempts_left(), std::nullopt, click_res};
+            }
+            return {terminal.view(), state.attempts_left(), std::nullopt, std::nullopt};
+            break;
+        }
+        // should not happen
+        return {terminal.view(), state.attempts_left(), std::nullopt, std::nullopt};
+    }
+
+    util::xorshift32 rng;
+    detail::word_repository words;
+    detail::terminal_buffer terminal;
+    detail::game_state state;
+};
+
+engine::engine(const lock_level lock_level_setting, const uint32_t player_science_skill, const uint64_t seed = 0) noexcept
+    : pimpl_(std::make_unique<impl>(lock_level_setting, player_science_skill, seed))
+{
 }
 
-// I'm lazy to change all constants to term_layout ones
-auto engine::check_coords(screen_coords coords) const noexcept -> std::optional<std::size_t>
+engine::~engine()
 {
-    auto m_x = coords.x;
-    auto m_y = coords.y;
-
-    if ((8 <= m_x && m_x <= 19) && (6 <= m_y && m_y <= 22)) // first window
-    {
-        m_x -= 8;
-        m_y -= 6;
-    }
-    else if ((28 <= m_x && m_x <= 39) && (6 <= m_y && m_y <= 22)) // second window
-    {
-        m_x -= 28;
-        m_y -= 6;
-        m_y += 17;
-    }
-    else
-    {
-        return std::nullopt;
-    }
-    return 12 * m_y + m_x;
 }
 
 auto engine::process_input(input current_input) noexcept -> state
 {
-    std::optional<std::size_t> internal_coord;
-    if (current_input.coords.has_value())
-    {
-        internal_coord = check_coords(*current_input.coords);
-    }
-    switch (current_input.type)
-    {
-    case input_type::other: // do nothing, return current state
-        return {terminal_.view(), state_.attempts_left(), {}, {}};
-        break;
-    case input_type::look:
-        if (internal_coord.has_value())
-        {
-            auto hl = engine_detail::interaction_logic::look_at(*internal_coord, terminal_, state_);
-            return {terminal_.view(), state_.attempts_left(), hl, std::nullopt};
-        }
-        return {terminal_.view(), state_.attempts_left(), std::nullopt, {}};
-        break;
-    case input_type::click:
-        if (internal_coord.has_value())
-        {
-            auto click_res = engine_detail::interaction_logic::click_at(*internal_coord, terminal_, words_, state_, rng_);
-            return {terminal_.view(), state_.attempts_left(), std::nullopt, click_res};
-        }
-        return {terminal_.view(), state_.attempts_left(), std::nullopt, std::nullopt};
-        break;
-    }
-    // should not happen
-    return {terminal_.view(), state_.attempts_left(), std::nullopt, std::nullopt};
+    return pimpl_->process_input(current_input);
 }
 } // namespace yafth::core
