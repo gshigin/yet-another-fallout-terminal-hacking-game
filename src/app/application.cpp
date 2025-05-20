@@ -17,33 +17,15 @@ class application::impl
   private:
     yafth::core::engine engine_;
     yafth::ui::user_interface ui_;
-
-    bool game_over_{false};
 };
 
 application::impl::impl(yafth::args args)
-    : engine_(args.lock, args.science_level, args.seed),
-      ui_(
-          [this](input inp) {
-              if (game_over_)
-              {
-                  return engine_.process_input(input{input_type::other, {}});
-              }
-
-              state current_state = engine_.process_input(inp);
-
-              if (current_state.click_res.has_value() &&
-                  (current_state.click_res->state == click_result::exact_match || current_state.click_res->state == click_result::lockout_in_progress))
-              {
-                  auto res = current_state.click_res->state;
-                  if (res == click_result::exact_match || res == click_result::lockout_in_progress)
-                  {
-                      game_over_ = true;
-                  }
-              }
-              return current_state;
-          },
-          util::seed(args.seed))
+    : engine_(args.lock, args.science_level, args.seed), ui_(
+                                                             [this](input inp) {
+                                                                 state current_state = engine_.process_input(inp);
+                                                                 return current_state;
+                                                             },
+                                                             util::seed(args.seed))
 
 {
 }
