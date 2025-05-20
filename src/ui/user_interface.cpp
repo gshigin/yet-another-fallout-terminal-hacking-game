@@ -4,6 +4,7 @@
 // yafth
 #include <yafth/core/terminal_layout.h>
 #include <yafth/ui/user_interface.h>
+#include <yafth/util/random.h>
 // ftxui
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -13,14 +14,39 @@
 
 namespace yafth::ui
 {
-user_interface::user_interface(fcallback_t callback, std::uint64_t seed) : callback_(std::move(callback)), start_hex_(util::seed(seed))
+
+class user_interface::impl
 {
-    terminal_state_ = callback_(input{input_type::other, {}});
+  public:
+    impl(fcallback_t cb, std::uint64_t seed);
+    void run();
+
+  private:
+    void update_internals();
+    ftxui::Component make_ui();
+
+    fcallback_t callback_;
+    std::uint64_t start_hex_;
+    state terminal_state_;
+    std::string last_loocked_;
+    std::vector<ftxui::Element> log_;
+
+    ftxui::ScreenInteractive screen_;
+};
+
+user_interface::impl::impl(fcallback_t cb, std::uint64_t seed)
+    : callback_(std::move(cb)), start_hex_(util::seed(seed)), terminal_state_(callback_({input_type::other, {}})),
+      screen_(ftxui::ScreenInteractive::FitComponent())
+{
 }
 
-ftxui::Component user_interface::create()
+void user_interface::impl::run()
 {
-    callback_(input{input_type::other, {}});
+    screen_.Loop(make_ui());
+}
+
+ftxui::Component user_interface::impl::make_ui()
+{
     return ftxui::CatchEvent(
         ftxui::Renderer([this]() {
             std::uint64_t start = start_hex_;
@@ -157,6 +183,7 @@ ftxui::Component user_interface::create()
             if (event == ftxui::Event::Custom) // custom event - game over
             {
                 callback_(input{input_type::other, {}});
+                screen_.ExitLoopClosure()();
                 return true;
             }
             if (event.is_mouse()) // mouse did something
@@ -167,12 +194,18 @@ ftxui::Component user_interface::create()
                 if (event.mouse().button == ftxui::Mouse::Left && event.mouse().motion == ftxui::Mouse::Released) // clicked left button
                 {
                     terminal_state_ = callback_(input{input_type::click, screen_coords{m_x, m_y}});
-                    update_internals_();
+                    update_internals();
                 }
                 else
                 {
                     terminal_state_ = callback_(input{input_type::look, screen_coords{m_x, m_y}});
-                    update_internals_();
+                    update_internals();
+                }
+
+                if (terminal_state_.click_res.has_value() &&
+                    (terminal_state_.click_res->state == click_result::exact_match || terminal_state_.click_res->state == click_result::lockout_in_progress))
+                {
+                    screen_.PostEvent(ftxui::Event::Custom);
                 }
                 return true;
             }
@@ -180,7 +213,7 @@ ftxui::Component user_interface::create()
         });
 }
 
-void user_interface::update_internals_()
+void user_interface::impl::update_internals()
 {
     if (terminal_state_.click_res.has_value()) // click happened
     {
@@ -246,4 +279,16 @@ void user_interface::update_internals_()
         }
     }
 }
+
+user_interface::user_interface(fcallback_t callback, std::uint64_t seed) : pimpl_(std::make_unique<impl>(std::move(callback), seed))
+{
+}
+
+user_interface::~user_interface() = default;
+
+void user_interface::run()
+{
+    pimpl_->run();
+}
+
 } // namespace yafth::ui
