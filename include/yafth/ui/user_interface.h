@@ -4,12 +4,9 @@
 #pragma once
 // yafth
 #include <yafth/core/types.h>
-#include <yafth/util/random.h>
-// ftxui
-#include <ftxui/component/component.hpp>
 // stl
-#include <string>
-#include <vector>
+#include <functional>
+#include <memory>
 
 namespace yafth::ui
 {
@@ -19,16 +16,13 @@ class user_interface
 
   public:
     user_interface(fcallback_t callback, std::uint64_t seed);
+    ~user_interface();
 
-    auto create() -> ftxui::Component;
+    void run();
 
   private:
-    void update_internals_();
+    struct impl;
 
-    fcallback_t callback_;
-    std::string last_loocked_ = "";
-    state terminal_state_ = {};
-    std::uint64_t start_hex_ = 0;
-    std::vector<ftxui::Element> log_ = {};
+    std::unique_ptr<impl> pimpl_;
 };
 } // namespace yafth::ui

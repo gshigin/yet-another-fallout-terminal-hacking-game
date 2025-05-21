@@ -15,12 +15,6 @@ class application
     application(yafth::args args);
     ~application();
 
-    application(application const &) = delete;
-    auto operator=(application const &) -> application & = delete;
-
-    application(application &&) noexcept = delete;
-    auto operator=(application &&) noexcept -> application & = delete;
-
     void run();
 
   private:

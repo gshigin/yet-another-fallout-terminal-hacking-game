@@ -5,50 +5,34 @@
 #include <yafth/app/application.h>
 #include <yafth/core/engine.h>
 #include <yafth/ui/user_interface.h>
-// ftxui
-#include <ftxui/component/screen_interactive.hpp>
 
 namespace yafth::app
 {
-struct application::impl
+class application::impl
 {
-    impl(yafth::args args);
+  public:
+    explicit impl(yafth::args args);
     void run();
 
-    ftxui::ScreenInteractive screen;
-    yafth::core::engine engine;
-    yafth::ui::user_interface ui;
-
-    bool game_over{false};
+  private:
+    yafth::core::engine engine_;
+    yafth::ui::user_interface ui_;
 };
 
 application::impl::impl(yafth::args args)
-    : screen(ftxui::ScreenInteractive::FitComponent()), engine(args.lock, args.science_level, args.seed),
-      ui(
-          [this](input inp) {
-              if (game_over)
-              {
-                  screen.ExitLoopClosure()();
-                  return engine.process_input(input{input_type::other, {}});
-              }
-              state current_state = engine.process_input(inp);
-              if (current_state.click_res.has_value() &&
-                  (current_state.click_res->state == click_result::exact_match || current_state.click_res->state == click_result::lockout_in_progress))
-              {
-                  // end game on next call
-                  game_over = true;
-                  screen.PostEvent(ftxui::Event::Custom);
-              }
-              return current_state;
-          },
-          util::seed(args.seed))
+    : engine_(args.lock, args.science_level, args.seed), ui_(
+                                                             [this](input inp) {
+                                                                 state current_state = engine_.process_input(inp);
+                                                                 return current_state;
+                                                             },
+                                                             util::seed(args.seed))
 
 {
 }
 
 void application::impl::run()
 {
-    screen.Loop(ui.create());
+    ui_.run();
 }
 
 application::application(yafth::args args) : pimpl_(std::make_unique<impl>(args))
