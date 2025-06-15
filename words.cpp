@@ -3,11 +3,9 @@
 #include <cassert>
 #include <cstdint>
 #include <fstream>
-#include <iomanip>
 #include <ios>
 #include <iostream>
 #include <random>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -86,21 +84,16 @@ std::string unpack_word(uint64_t packed)
     return word;
 }
 
-std::string_view getword(const char *&_str, const char *end)
+std::string_view getword(const char*& str, const char* end)
 {
-    const char *str = _str;
-    while (*str == '\n' || *str == '\r')
-    {
-        if (++str == end)
-            return (_str = str), std::string_view{};
-    }
-
-    const char *start = str;
-    while (str != end && *str != '\n' && *str != '\r')
+    while (str < end && (*str == '\n' || *str == '\r'))
         ++str;
 
-    _str = str;
-    return std::string_view{start, str};
+    const char* start = str;
+    while (str < end && *str != '\n' && *str != '\r')
+        ++str;
+
+    return {start, str};
 }
 
 std::unordered_map<uint32_t, std::vector<uint64_t>> load_words(const std::string &filename)
@@ -131,10 +124,13 @@ std::unordered_map<uint32_t, std::vector<uint64_t>> load_words(const std::string
 }
 
 bool flexible_dfs(uint16_t current_idx, const std::vector<uint64_t> &words, std::bitset<MAX_WORDS> &visited, std::vector<uint16_t> &path, int target_length,
-                  int max_diff)
+                  int max_diff, int& step_counter, int step_limit = 300)
 {
     if ((int)path.size() >= target_length)
         return true;
+
+    if (++step_counter > step_limit)
+        return false;
 
     std::vector<std::pair<int, uint16_t>> candidates;
 
@@ -156,7 +152,7 @@ bool flexible_dfs(uint16_t current_idx, const std::vector<uint64_t> &words, std:
     {
         visited[idx] = true;
         path.push_back(idx);
-        if (flexible_dfs(idx, words, visited, path, target_length, max_diff))
+        if (flexible_dfs(idx, words, visited, path, target_length, max_diff, step_counter))
             return true;
         path.pop_back();
         visited[idx] = false;
@@ -351,14 +347,14 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<uint64
 
     if (!header_file.is_open())
     {
-        std::cerr << "Failed to open header output file" << std::endl;
+        std::cerr << "Failed to open header output file\n";
         return "Error opening header file";
     }
 
     header_file << "#pragma once\n\n";
 
     header_file << "#include <array>\n";
-    header_file << "#include <cstdint>\n";
+    header_file << "#include <cstdint>\n\n";
 
     header_file << "namespace yafth::core::engine_detail::words {\n\n";
 
@@ -375,7 +371,7 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<uint64
 
         for (int target_length = 100; target_length != 0; --target_length)
         {
-            size_t cnt = 0;
+            size_t fail_counter = 0;
 
             for (uint16_t start_idx = 0; start_idx < words.size(); ++start_idx)
             {
@@ -386,7 +382,8 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<uint64
                 visited[start_idx] = true;
                 path.push_back(start_idx);
 
-                if (flexible_dfs(start_idx, words, visited, path, target_length, 3))
+                int step_counter = 0;
+                if (flexible_dfs(start_idx, words, visited, path, target_length, 3, step_counter))
                 {
                     compact_path = encode_chain_compact_packed(path, words);
 
@@ -396,8 +393,8 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<uint64
                     if (compact_path.size() > 140)
                         break;
 
-                    ++cnt;
-                    if (cnt == 25)
+                    ++fail_counter;
+                    if (++fail_counter > 100)
                         break;
                 }
             }
