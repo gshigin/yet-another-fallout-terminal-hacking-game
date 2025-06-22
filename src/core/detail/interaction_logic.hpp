@@ -6,6 +6,7 @@
 #include <yafth/core/types.h>
 // stl
 #include <functional>
+#include <random>
 
 // fwd
 namespace yafth::core::detail

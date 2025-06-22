@@ -6,6 +6,7 @@
 #include <array>
 #include <functional>
 #include <string>
+#include <random>
 
 // fwd
 namespace yafth::core::detail
