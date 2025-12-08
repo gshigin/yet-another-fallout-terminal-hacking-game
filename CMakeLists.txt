@@ -27,6 +27,8 @@ if(NOT ftxui_POPULATED)
   add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
+add_subdirectory(external/googletest)
+
 # Build
 file(GLOB_RECURSE LIB_SOURCES
     src/app/*.cpp
@@ -41,6 +43,10 @@ target_include_directories(${PROJECT_NAME}-lib PUBLIC ${PROJECT_SOURCE_DIR}/incl
 
 add_executable(${PROJECT_NAME}
   src/main.cpp
+)
+
+add_executable(wordgen
+  src/wordgen/wordgen.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}-lib 
@@ -66,4 +72,26 @@ if(MSVC)
   target_compile_options(yafth PRIVATE /W4 /WX)
 else()
   target_compile_options(yafth PRIVATE -Wall -Wextra -Wpedantic -Werror -Wdeprecated)
+endif()
+
+# Tests
+# ===== Поддержка тестов =====
+include(CTest)
+
+if(BUILD_TESTING)
+    # Ищем тестовые файлы
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
+        src/*_test.cpp
+    )
+
+    add_executable(tests
+        ${TEST_SOURCES}
+    ) 
+    target_link_libraries(tests
+        PRIVATE
+            GTest::gtest_main
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(tests)
 endif()
