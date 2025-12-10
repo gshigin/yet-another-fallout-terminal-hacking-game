@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include <fstream>
+#include <future>
 #include <ios>
 #include <iostream>
 #include <random>
@@ -46,8 +47,9 @@ std::unordered_map<uint32_t, std::vector<packed_word>> load_words(const std::str
 
   while (!(word = getword(str, strEnd)).empty()) {
     const auto size = word.size();
-    if (size < 4 || size > 12)
+    if (size < 4 || size > 12) {
       continue;
+    }
     ans[size].emplace_back(word);
   }
 
@@ -311,7 +313,7 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<packed
 
   header_file << "namespace yafth::core::engine_detail::words {\n\n";
 
-  std::bitset<65536> visited;
+  std::bitset<MAX_WORDS> visited;
   std::vector<uint16_t> path;
   std::vector<uint8_t> compact_path;
   size_t compact_path_size;
@@ -321,7 +323,7 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<packed
     std::cout << "Chain of length " << word_length << " generation started\n";
 
     auto& words = all_words[word_length];  // Assuming that words are loaded by length
-    std::shuffle(words.begin(), words.end(), rng);
+    // std::shuffle(words.begin(), words.end(), rng);
 
     for (int target_length = 100; target_length != 0; --target_length) {
       size_t fail_counter = 0;
@@ -397,11 +399,47 @@ std::string generate_header_file(std::unordered_map<uint32_t, std::vector<packed
   return "Header file generated successfully.";
 }
 
+std::unordered_map<uint32_t, std::unordered_map<uint16_t, std::vector<std::pair<uint8_t, uint16_t>>>> build_graphs(
+    const std::unordered_map<uint32_t, std::vector<packed_word>>& all_words) {
+  std::vector<std::future<void>> tasks;
+  tasks.reserve(all_words.size());
+
+  std::unordered_map<uint32_t, std::unordered_map<uint16_t, std::vector<std::pair<uint8_t, uint16_t>>>> ans;
+  for (size_t len = 4; len <= 12; ++len) {
+    ans[len];
+  }
+
+  for (auto& [len, words] : all_words) {
+    tasks.emplace_back(std::async(std::launch::async, [len, &words, &ans] {
+      auto start_time = std::chrono::high_resolution_clock::now();
+
+      auto& graph = ans[len];
+
+      const size_t max_diff = len <= 8 ? 2 : 3;
+      const size_t words_size = words.size();
+
+      for (size_t i = 0; i < words_size; ++i) {
+        for (size_t j = i + 1; j < words_size; ++j) {
+          size_t diff = words[i].diff(words[j]);
+          if (diff <= max_diff) [[unlikely]] {
+            graph[i].emplace_back(diff, j);
+          }
+        }
+      }
+
+      auto load_time = std::chrono::high_resolution_clock::now();
+      std::clog << len << " took " << std::chrono::duration<double>(load_time - start_time).count() << " seconds\n";
+    }));
+  }
+
+  return ans;
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
   if (argc != 4) {
-    std::cerr << "Usage: " << argv[0] << " <word dictionary path> <header output path> <random seed>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <word dictionary path> <header output path> <random seed>" << '\n';
     return 1;
   }
 
@@ -409,15 +447,49 @@ int main(int argc, char* argv[]) {
   std::string header_output_path = argv[2];
   uint32_t seed = std::stoi(argv[3]);
 
-  // Load words from dictionary (use the `load_words` function from your original code)
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start_time = std::chrono::high_resolution_clock::now();
 
   auto all_words = load_words(dictionary_path);
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> diff = end - start;
+  auto load_time = std::chrono::high_resolution_clock::now();
+  std::clog << "load took " << std::chrono::duration<double>(load_time - start_time).count() << " seconds\n";
 
-  std::cerr << "load_words took " << diff.count() << " seconds\n";
+  std::mt19937 rng(seed);
+
+  for (auto& [len, words] : all_words) {
+    std::shuffle(words.begin(), words.end(), rng);
+    if (words.size() > MAX_WORDS) {
+      words.resize(MAX_WORDS);
+    }
+  }
+
+  auto shuffle_time = std::chrono::high_resolution_clock::now();
+  std::clog << "shuffle took " << std::chrono::duration<double>(shuffle_time - load_time).count() << " seconds\n";
+
+  for (size_t len = 4; len <= 12; ++len) {
+    std::cout << len << ' ' << all_words[len].size() << "\n";
+  }
+
+  auto graphs = build_graphs(all_words);
+
+  auto graph_time = std::chrono::high_resolution_clock::now();
+  std::clog << "graph build took " << std::chrono::duration<double>(graph_time - shuffle_time).count() << " seconds\n";
+
+  size_t graph_size_total = 0;
+  for (auto& [len, graph] : graphs) {
+    size_t graph_size = 0;
+    double card = 0;
+    for (const auto& [id, vec] : graph) {
+      graph_size += vec.size() * sizeof(std::pair<uint8_t, uint16_t>);
+      card += vec.size();
+    }
+    graph_size_total += graph_size;
+
+    std::cout << "graph alloc : " << len << " " << (double(graph_size) / 1024 / 1024) << " MB\n";
+    std::cout << "graph mcard : " << len << " " << (card / graph.size()) << "\n";
+  }
+
+  std::cout << "graph total alloc : " << (double(graph_size_total) / 1024 / 1024) << " MB\n";
 
   // Generate header file
   std::string result = generate_header_file(all_words, seed, header_output_path);

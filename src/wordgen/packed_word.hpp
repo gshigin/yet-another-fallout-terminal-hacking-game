@@ -2,7 +2,6 @@
 
 #include <bit>
 #include <cstdint>
-#include <limits>
 #include <string>
 
 namespace yafth::wordgen {
@@ -33,31 +32,33 @@ class packed_word {
   }
 
   [[nodiscard]] uint8_t diff(packed_word other) const noexcept {
-    if (!is_valid() || !other.is_valid()) {
-      return std::numeric_limits<uint8_t>::max();
-    }
+    // if (!is_valid() || !other.is_valid()) [[unlikely]] {
+    //   return std::numeric_limits<uint8_t>::max();
+    // }
 
-    if (size() != other.size()) [[unlikely]] {
-      return std::numeric_limits<uint8_t>::max();
-    }
+    // if (size() != other.size()) [[unlikely]] {
+    //   return std::numeric_limits<uint8_t>::max();
+    // }
 
     auto x = data_ ^ other.data_;
+    // accumulate every 5-bit pack into lower bit
     x |= x >> 1;
     x |= x >> 2;
     x |= x >> 1;
+    // mask lower bit in pack
     x &= 0x084210842108421ULL;
 
     return std::popcount(x);
   }
 
   [[nodiscard]] packed_word diff_word(packed_word other) const noexcept {
-    if (!is_valid() || !other.is_valid()) {
-      return {};
-    }
+    // if (!is_valid() || !other.is_valid()) {
+    //   return {};
+    // }
 
-    if (size() != other.size()) [[unlikely]] {
-      return {};
-    }
+    // if (size() != other.size()) [[unlikely]] {
+    //   return {};
+    // }
 
     auto x = data_ ^ other.data_;
     // accumulate every 5-bit pack into lower bit
@@ -76,14 +77,14 @@ class packed_word {
   }
 
   [[nodiscard]] char operator[](size_t idx) const noexcept {
-    idx %= size();
+    // idx %= size();
 
     const uint8_t v = (data_ >> ((11 - idx) * 5)) & 0x1F;
     return static_cast<char>('a' + v - 5);
   }
 
   void set(size_t idx, char c) noexcept {
-    idx %= size();
+    // idx %= size();
 
     const size_t bitpos = (11 - idx) * 5;
 
@@ -97,9 +98,9 @@ class packed_word {
   uint64_t data_;
 
   static uint64_t pack_word(std::string_view word) noexcept {
-    if (word.size() < 4 || word.size() > 12) [[unlikely]] {
-      return 0;
-    }
+    // if (word.size() < 4 || word.size() > 12) [[unlikely]] {
+    //   return 0;
+    // }
 
     uint64_t result = word.size() & 0xF;
 
