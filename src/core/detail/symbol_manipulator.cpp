@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
-#include <yafth/core/engine_detail/symbol_manipulator.h>
-#include <yafth/core/engine_detail/terminal_buffer.h>
+#include "symbol_manipulator.hpp"
+#include "terminal_buffer.hpp"
 
-namespace yafth::core::engine_detail::symbol_manipulator::_internal
+namespace yafth::core::detail::symbol_manipulator::_internal
 {
 auto generate_words(std::size_t length, std::size_t count, rng_fref gen_next) noexcept -> std::array<std::string, 20>
 {
@@ -163,4 +163,4 @@ auto place_words(terminal_buffer &terminal, const std::array<std::string, 20> &w
 
     return offsets;
 }
-} // namespace yafth::core::engine_detail::symbol_manipulator::_internal
+} // namespace yafth::core::detail::symbol_manipulator::_internal

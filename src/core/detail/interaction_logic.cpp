@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
-#include <yafth/core/engine_detail/game_state.h>
-#include <yafth/core/engine_detail/interaction_logic.h>
-#include <yafth/core/engine_detail/terminal_buffer.h>
-#include <yafth/core/engine_detail/word_repository.h>
+#include "interaction_logic.hpp"
+#include "game_state.hpp"
+#include "terminal_buffer.hpp"
+#include "word_repository.hpp"
 // stl
 #include <cassert>
 #include <numeric>
@@ -30,7 +30,7 @@ constexpr auto is_char(char c) noexcept -> bool
 }
 } // namespace
 
-auto yafth::core::engine_detail::interaction_logic::look_at(std::size_t index, const terminal_buffer &terminal, game_state &state) noexcept -> highlight
+auto yafth::core::detail::interaction_logic::look_at(std::size_t index, const terminal_buffer &terminal, game_state &state) noexcept -> highlight
 {
     assert(index < terminal.size());
 
@@ -74,8 +74,8 @@ auto yafth::core::engine_detail::interaction_logic::look_at(std::size_t index, c
     return {index, index + 1};
 }
 
-auto yafth::core::engine_detail::interaction_logic::_internal::click_at(std::size_t index, terminal_buffer &terminal, word_repository &words, game_state &state,
-                                                                        rng_fref gen_next) noexcept -> click_status
+auto yafth::core::detail::interaction_logic::_internal::click_at(std::size_t index, terminal_buffer &terminal, word_repository &words, game_state &state,
+                                                                 rng_fref gen_next) noexcept -> click_status
 {
     assert(index < terminal.size());
     assert(!state.is_game_over());

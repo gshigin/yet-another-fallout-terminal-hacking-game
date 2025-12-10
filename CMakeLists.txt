@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.21)
 
 project(yafth
-  VERSION 0.4.0
+  VERSION 0.4.2
   LANGUAGES CXX
 )
 
@@ -32,14 +32,16 @@ add_subdirectory(external/googletest)
 # Build
 file(GLOB_RECURSE LIB_SOURCES
     src/app/*.cpp
-    src/core/*.cpp 
-    src/core/engine_detail/*.cpp
+    src/core/*.cpp
     src/ui/*.cpp
     src/util/*.cpp
 )
 
 add_library(${PROJECT_NAME}-lib ${LIB_SOURCES})
-target_include_directories(${PROJECT_NAME}-lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME}-lib 
+  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 add_executable(${PROJECT_NAME}
   src/main.cpp

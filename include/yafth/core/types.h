@@ -2,8 +2,6 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #pragma once
-// yafth
-#include <yafth/core/terminal_layout.h>
 // stl
 #include <optional>
 #include <string_view>

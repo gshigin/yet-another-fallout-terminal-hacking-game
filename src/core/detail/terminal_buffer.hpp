@@ -6,7 +6,7 @@
 #include <array>
 #include <string_view>
 
-namespace yafth::core::engine_detail
+namespace yafth::core::detail
 {
 class terminal_buffer
 {
@@ -32,4 +32,4 @@ class terminal_buffer
   private:
     std::array<char, kSize> chars_{};
 };
-} // namespace yafth::core::engine_detail
+} // namespace yafth::core::detail

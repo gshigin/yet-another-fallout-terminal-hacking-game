@@ -2,11 +2,11 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 // yafth
-#include <yafth/core/engine_detail/game_state.h>
+#include "game_state.hpp"
 // stl
 #include <cassert>
 
-namespace yafth::core::engine_detail
+namespace yafth::core::detail
 {
 auto game_state::is_bracket_used(size_t index) const noexcept -> bool
 {
@@ -52,4 +52,4 @@ void game_state::set_game_over() noexcept
 {
     game_over_ = true;
 }
-} // namespace yafth::core::engine_detail
+} // namespace yafth::core::detail
