@@ -32,13 +32,13 @@ class packed_word {
   }
 
   [[nodiscard]] uint8_t diff(packed_word other) const noexcept {
-    // if (!is_valid() || !other.is_valid()) [[unlikely]] {
-    //   return std::numeric_limits<uint8_t>::max();
-    // }
+    if (!is_valid() || !other.is_valid()) [[unlikely]] {
+      return std::numeric_limits<uint8_t>::max();
+    }
 
-    // if (size() != other.size()) [[unlikely]] {
-    //   return std::numeric_limits<uint8_t>::max();
-    // }
+    if (size() != other.size()) [[unlikely]] {
+      return std::numeric_limits<uint8_t>::max();
+    }
 
     auto x = data_ ^ other.data_;
     // accumulate every 5-bit pack into lower bit
@@ -52,13 +52,13 @@ class packed_word {
   }
 
   [[nodiscard]] packed_word diff_word(packed_word other) const noexcept {
-    // if (!is_valid() || !other.is_valid()) {
-    //   return {};
-    // }
+    if (!is_valid() || !other.is_valid()) {
+      return {};
+    }
 
-    // if (size() != other.size()) [[unlikely]] {
-    //   return {};
-    // }
+    if (size() != other.size()) [[unlikely]] {
+      return {};
+    }
 
     auto x = data_ ^ other.data_;
     // accumulate every 5-bit pack into lower bit
@@ -95,12 +95,12 @@ class packed_word {
   bool operator==(packed_word other) const noexcept { return data_ == other.data_; }
 
  private:
-  uint64_t data_;
+  uint64_t data_{0};
 
   static uint64_t pack_word(std::string_view word) noexcept {
-    // if (word.size() < 4 || word.size() > 12) [[unlikely]] {
-    //   return 0;
-    // }
+    if (word.size() < 4 || word.size() > 12) [[unlikely]] {
+      return 0;
+    }
 
     uint64_t result = word.size() & 0xF;
 
