@@ -7,21 +7,17 @@
 // stl
 #include <iostream>
 
-int main(int argc, char *argv[])
-{
-    yafth::args arguments{};
-    try
-    {
-        arguments = yafth::util::argparser::parse(argc, argv);
-    }
-    catch (const std::exception &ex)
-    {
-        std::cerr << "Error: " << ex.what() << "\n";
-        return 1;
-    }
+int main(int argc, char* argv[]) {
+  yafth::args arguments{};
+  try {
+    arguments = yafth::util::argparser::parse(argc, argv);
+  } catch (const std::exception& ex) {
+    std::cerr << "Error: " << ex.what() << "\n";
+    return 1;
+  }
 
-    yafth::app::application app(arguments);
-    app.run();
+  yafth::app::application app(arguments);
+  app.run();
 
-    return 0;
+  return 0;
 }

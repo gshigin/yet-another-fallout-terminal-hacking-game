@@ -51,6 +51,11 @@ add_executable(wordgen
   src/wordgen/wordgen.cpp
 )
 
+target_include_directories(wordgen
+  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 target_link_libraries(${PROJECT_NAME}-lib 
   PRIVATE ftxui::component
 )

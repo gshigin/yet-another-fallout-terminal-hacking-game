@@ -7,18 +7,16 @@
 // stl
 #include <memory>
 
-namespace yafth::app
-{
-class application
-{
-  public:
-    application(yafth::args args);
-    ~application();
+namespace yafth::app {
+class application {
+ public:
+  application(yafth::args args);
+  ~application();
 
-    void run();
+  void run();
 
-  private:
-    struct impl;
-    std::unique_ptr<impl> pimpl_;
+ private:
+  struct impl;
+  std::unique_ptr<impl> pimpl_;
 };
-} // namespace yafth::app
+}  // namespace yafth::app
