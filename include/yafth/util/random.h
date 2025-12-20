@@ -45,6 +45,11 @@ struct xorshift32 {
   constexpr auto operator()() noexcept -> uint32_t { return next(); }
 
   constexpr auto fork() noexcept -> xorshift32 { return xorshift32{.state = next()}; }
+  constexpr auto discard(uint32_t steps) noexcept -> void {
+    for (uint32_t i = 0; i < steps; ++i) {
+      next();
+    }
+  }
 
   static constexpr auto min() noexcept -> uint32_t { return 0; }
   static constexpr auto max() noexcept -> uint32_t { return std::numeric_limits<uint32_t>::max(); }
