@@ -1,5 +1,7 @@
 ---
-Language: Cpp
-Standard: c++20
 BasedOnStyle: microsoft
+BreakBeforeBraces: Attach
 ColumnLimit: 160
+---
+Language: Cpp
+Standard: Latest

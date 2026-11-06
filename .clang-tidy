@@ -1,4 +1,7 @@
 ---
 Checks: 'clang-diagnostic-*,clang-analyzer-*,bugprone-*,modernize-*,performance-*,misc-*'
-WarningsAsErrors: true
-FormatStyle: Microsoft
+WarningsAsErrors: '*'
+HeaderFilterRegex: '^$'
+FormatStyle: file
+CheckOptions:
+  misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: true

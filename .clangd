@@ -1,0 +1,9 @@
+# Open the self-contained implementation as C99, regardless of its includers.
+If:
+  PathMatch: 'yafth\.h'
+CompileFlags:
+  Remove: [-std=*, /std:*, /TP, /TC]
+  Add: [-xc, -Xclang, -std=c99, '-DYAFTH_IMPLEMENTATION=']
+Diagnostics:
+  ClangTidy:
+    Remove: [bugprone-easily-swappable-parameters]
